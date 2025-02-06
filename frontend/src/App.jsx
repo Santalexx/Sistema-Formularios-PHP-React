@@ -1,4 +1,3 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -31,7 +30,8 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   }
 
   if (allowedRole && user.rol_id !== allowedRole) {
-    return <Navigate to="/" />;
+    // Si es admin, redirige a /admin, si es usuario a /dashboard
+    return <Navigate to={user.rol_id === 1 ? "/admin" : "/dashboard"} />;
   }
 
   return children;
@@ -42,9 +42,21 @@ ProtectedRoute.propTypes = {
   allowedRole: PropTypes.number
 };
 
+// Componente para redirección basada en rolesf
+const RoleBasedRedirect = () => {
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return user.rol_id === 1 ? 
+    <Navigate to="/admin" replace /> : 
+    <Navigate to="/dashboard" replace />;
+};
+
 function App() {
   const { user } = useAuth();
-  console.log('App us rendering');
 
   return (
     <ThemeProvider theme={theme}>
@@ -52,11 +64,14 @@ function App() {
       <Routes>
         {/* Rutas públicas */}
         <Route path="/login" element={
-          user ? <Navigate to="/" /> : <Login />
+          user ? <RoleBasedRedirect /> : <Login />
         } />
         <Route path="/registro" element={
-          user ? <Navigate to="/" /> : <Register />
+          user ? <RoleBasedRedirect /> : <Register />
         } />
+
+        {/* Ruta raíz - redirecciona según el rol */}
+        <Route path="/" element={<RoleBasedRedirect />} />
 
         {/* Rutas de administrador */}
         <Route path="/admin" element={
@@ -69,21 +84,20 @@ function App() {
           <Route path="estadisticas" element={<Statistics />} />
         </Route>
 
-        {/* Rutas de usuario */}
-        <Route path="/" element={
-          <ProtectedRoute>
+        {/* Rutas de usuario normal */}
+        <Route element={
+          <ProtectedRoute allowedRole={2}>
             <UserLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<UserDashboard />} />
-          <Route path="dashboard" element={<UserDashboard />} />
-          <Route path="formularios" element={<UserForms />} />
-          <Route path="mis-respuestas" element={<UserResponses />} />
-          <Route path="perfil" element={<UserProfile />} />
+          <Route path="/dashboard" element={<UserDashboard />} />
+          <Route path="/formularios" element={<UserForms />} />
+          <Route path="/mis-respuestas" element={<UserResponses />} />
+          <Route path="/perfil" element={<UserProfile />} />
         </Route>
 
         {/* Redirección por defecto */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<RoleBasedRedirect />} />
       </Routes>
     </ThemeProvider>
   );

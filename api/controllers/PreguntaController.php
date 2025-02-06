@@ -1,13 +1,24 @@
 <?php
 
+// Incluimos los archivos necesarios
 require_once __DIR__ . '/../models/Pregunta.php';
 require_once __DIR__ . '/../utils/JWT.php';
 
+/**
+ * Este controlador maneja todo lo relacionado con las preguntas del sistema:
+ * - Ver todas las preguntas
+ * - Crear preguntas nuevas
+ * - Modificar preguntas existentes
+ * - Eliminar preguntas
+ * - Ver preguntas por módulo
+ */
 class PreguntaController
 {
-    private $db;
-    private $pregunta;
+    // Guardamos las herramientas que necesitamos
+    private $db;        // Para conectarnos a la base de datos
+    private $pregunta;  // Para manejar las operaciones con preguntas
 
+    // Preparamos todo lo necesario cuando se crea el controlador
     public function __construct()
     {
         $database = new Database();
@@ -16,99 +27,96 @@ class PreguntaController
     }
 
     /**
-     * Procesa las solicitudes entrantes
-     * @param string $metodo Método HTTP
-     * @param string|null $parametro Parámetro adicional de la URL
+     * Este método recibe todas las peticiones y las dirige al lugar correcto
+     * según lo que el usuario quiere hacer
      */
     public function procesarSolicitud($metodo, $parametro = null)
     {
-        // Verificar token para todas las rutas excepto GET
+        // Solo los administradores pueden modificar preguntas
         if ($metodo !== 'GET') {
-            if (!$this->verificarToken() || !$this->esAdministrador()) {
-                http_response_code(403);
-                echo json_encode(['mensaje' => 'No autorizado']);
+            if (!$this->verificarPermisos()) {
+                $this->responder(403, 'No tienes permiso para realizar esta acción');
                 return;
             }
         }
 
-        switch ($metodo) {
-            case 'GET':
-                if ($parametro) {
-                    if (is_numeric($parametro)) {
-                        $this->obtenerPorId($parametro);
-                    } else if ($parametro === 'modulo') {
-                        $this->obtenerPorModulo();
-                    }
-                } else {
+        // Definimos qué hacer según el tipo de petición
+        $acciones = [
+            'GET' => function () use ($parametro) {
+                if (empty($parametro)) {
                     $this->obtenerTodas();
+                } elseif (is_numeric($parametro)) {
+                    $this->obtenerPorId($parametro);
+                } elseif ($parametro === 'modulo') {
+                    $this->obtenerPorModulo();
+                } else {
+                    $this->responder(404, 'No encontramos lo que buscas');
                 }
-                break;
-            case 'POST':
+            },
+            'POST' => function () {
                 $this->crear();
-                break;
-            case 'PUT':
+            },
+            'PUT' => function () use ($parametro) {
                 if (!$parametro) {
-                    http_response_code(400);
-                    echo json_encode(['mensaje' => 'ID de pregunta no proporcionado']);
+                    $this->responder(400, 'Necesitamos saber qué pregunta quieres modificar');
                     return;
                 }
                 $this->actualizar($parametro);
-                break;
-            case 'DELETE':
+            },
+            'DELETE' => function () use ($parametro) {
                 if (!$parametro) {
-                    http_response_code(400);
-                    echo json_encode(['mensaje' => 'ID de pregunta no proporcionado']);
+                    $this->responder(400, 'Necesitamos saber qué pregunta quieres eliminar');
                     return;
                 }
                 $this->eliminar($parametro);
-                break;
-            default:
-                http_response_code(405);
-                echo json_encode(['mensaje' => 'Método no permitido']);
-                break;
+            }
+        ];
+
+        // Si el método existe, lo ejecutamos
+        if (isset($acciones[$metodo])) {
+            $acciones[$metodo]();
+        } else {
+            $this->responder(405, 'Este tipo de petición no está permitida');
         }
     }
 
     /**
-     * Verifica el token JWT
-     * @return bool
+     * Verifica si el usuario está autenticado y es administrador
      */
-    private function verificarToken()
+    private function verificarPermisos()
+    {
+        // Primero verificamos que haya un token válido
+        $token = $this->obtenerToken();
+        if (!$token) return false;
+
+        // Luego verificamos que sea administrador
+        $datos = JWT::verificarToken($token);
+        return $datos && $datos['rol_id'] === 1;
+    }
+
+    /**
+     * Obtiene el token de autorización de los headers
+     */
+    private function obtenerToken()
     {
         $headers = getallheaders();
         if (!isset($headers['Authorization'])) {
             return false;
         }
-
-        $token = str_replace('Bearer ', '', $headers['Authorization']);
-        return JWT::verificarToken($token) !== false;
+        return str_replace('Bearer ', '', $headers['Authorization']);
     }
 
     /**
-     * Verifica si el usuario es administrador
-     * @return bool
-     */
-    private function esAdministrador()
-    {
-        $headers = getallheaders();
-        $token = str_replace('Bearer ', '', $headers['Authorization']);
-        $datos = JWT::verificarToken($token);
-
-        return $datos && $datos['rol_id'] === 1;
-    }
-
-    /**
-     * Obtiene todas las preguntas activas
+     * Muestra todas las preguntas activas
      */
     private function obtenerTodas()
     {
         $preguntas = $this->pregunta->obtenerTodas();
-        echo json_encode(['preguntas' => $preguntas]);
+        $this->responder(200, ['preguntas' => $preguntas]);
     }
 
     /**
-     * Obtiene una pregunta por su ID
-     * @param int $id ID de la pregunta
+     * Muestra una pregunta específica por su ID
      */
     private function obtenerPorId($id)
     {
@@ -116,113 +124,139 @@ class PreguntaController
         $pregunta = $this->pregunta->obtenerPorId();
 
         if ($pregunta) {
-            echo json_encode(['pregunta' => $pregunta]);
+            $this->responder(200, ['pregunta' => $pregunta]);
         } else {
-            http_response_code(404);
-            echo json_encode(['mensaje' => 'Pregunta no encontrada']);
+            $this->responder(404, 'No encontramos la pregunta que buscas');
         }
     }
 
     /**
-     * Obtiene preguntas por módulo
+     * Muestra todas las preguntas de un módulo específico
      */
     private function obtenerPorModulo()
     {
         if (!isset($_GET['id'])) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'ID de módulo no proporcionado']);
+            $this->responder(400, 'Necesitamos saber qué módulo quieres consultar');
             return;
         }
 
         $modulo_id = $_GET['id'];
         $preguntas = $this->pregunta->obtenerPorModulo($modulo_id);
-        echo json_encode(['preguntas' => $preguntas]);
+        $this->responder(200, ['preguntas' => $preguntas]);
     }
 
     /**
-     * Crea una nueva pregunta
+     * Crea una nueva pregunta en el sistema
      */
     private function crear()
     {
         $datos = json_decode(file_get_contents("php://input"));
 
+        // Verificamos que los datos estén completos y sean válidos
         if (!$this->validarDatosPregunta($datos)) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'Faltan datos requeridos o son inválidos']);
+            $this->responder(400, 'Faltan datos o algunos datos no son válidos');
             return;
         }
 
+        // Preparamos la pregunta para guardarla
         $this->pregunta->modulo_id = $datos->modulo_id;
         $this->pregunta->pregunta = $datos->pregunta;
         $this->pregunta->tipo_respuesta_id = $datos->tipo_respuesta_id;
         $this->pregunta->activa = $datos->activa ?? true;
 
+        // Intentamos guardar la pregunta
         if ($this->pregunta->crear()) {
-            http_response_code(201);
-            echo json_encode(['mensaje' => 'Pregunta creada exitosamente']);
+            $this->responder(201, 'Pregunta creada exitosamente');
         } else {
-            http_response_code(500);
-            echo json_encode(['mensaje' => 'Error al crear la pregunta']);
+            $this->responder(500, 'Hubo un problema al crear la pregunta');
         }
     }
 
     /**
      * Actualiza una pregunta existente
-     * @param int $id ID de la pregunta
      */
     private function actualizar($id)
     {
         $datos = json_decode(file_get_contents("php://input"));
 
+        // Verificamos que los datos estén completos y sean válidos
         if (!$this->validarDatosPregunta($datos)) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'Faltan datos requeridos o son inválidos']);
+            $this->responder(400, 'Faltan datos o algunos datos no son válidos');
             return;
         }
 
+        // Preparamos la pregunta para actualizarla
         $this->pregunta->id = $id;
         $this->pregunta->modulo_id = $datos->modulo_id;
         $this->pregunta->pregunta = $datos->pregunta;
         $this->pregunta->tipo_respuesta_id = $datos->tipo_respuesta_id;
         $this->pregunta->activa = $datos->activa ?? true;
 
+        // Intentamos actualizar la pregunta
         if ($this->pregunta->actualizar()) {
-            echo json_encode(['mensaje' => 'Pregunta actualizada exitosamente']);
+            $this->responder(200, 'Pregunta actualizada exitosamente');
         } else {
-            http_response_code(500);
-            echo json_encode(['mensaje' => 'Error al actualizar la pregunta']);
+            $this->responder(500, 'Hubo un problema al actualizar la pregunta');
         }
     }
 
     /**
-     * Elimina (desactiva) una pregunta
-     * @param int $id ID de la pregunta
+     * Elimina (desactiva) una pregunta del sistema
      */
     private function eliminar($id)
     {
         $this->pregunta->id = $id;
 
+        // Intentamos eliminar la pregunta
         if ($this->pregunta->eliminar()) {
-            echo json_encode(['mensaje' => 'Pregunta eliminada exitosamente']);
+            $this->responder(200, 'Pregunta eliminada exitosamente');
         } else {
-            http_response_code(500);
-            echo json_encode(['mensaje' => 'Error al eliminar la pregunta']);
+            $this->responder(500, 'Hubo un problema al eliminar la pregunta');
         }
     }
 
     /**
-     * Valida los datos requeridos de una pregunta
-     * @param object $datos Datos a validar
-     * @return bool
+     * Verifica que una pregunta tenga todos los datos necesarios
      */
     private function validarDatosPregunta($datos)
     {
-        return isset($datos->modulo_id) &&
-            isset($datos->pregunta) &&
-            isset($datos->tipo_respuesta_id) &&
-            !empty($datos->pregunta) &&
-            is_numeric($datos->modulo_id) &&
-            is_numeric($datos->tipo_respuesta_id);
+        // Verificamos que existan todos los campos necesarios
+        $campos_requeridos = [
+            'modulo_id' => 'número',
+            'pregunta' => 'texto',
+            'tipo_respuesta_id' => 'número'
+        ];
+
+        foreach ($campos_requeridos as $campo => $tipo) {
+            if (!isset($datos->$campo)) {
+                return false;
+            }
+
+            // Verificamos que los campos numéricos sean números
+            if ($tipo === 'número' && !is_numeric($datos->$campo)) {
+                return false;
+            }
+
+            // Verificamos que los campos de texto no estén vacíos
+            if ($tipo === 'texto' && empty($datos->$campo)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Envía una respuesta al cliente en formato JSON
+     */
+    private function responder($codigo, $mensaje)
+    {
+        http_response_code($codigo);
+        if (is_string($mensaje)) {
+            echo json_encode(['mensaje' => $mensaje]);
+        } else {
+            echo json_encode($mensaje);
+        }
     }
 }
 

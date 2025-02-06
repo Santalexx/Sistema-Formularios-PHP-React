@@ -15,16 +15,63 @@ import {
   InputAdornment,
   IconButton,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Error as ErrorIcon } from '@mui/icons-material';
 
-// Datos estáticos
 const TIPOS_DOCUMENTO = [
-  { id: 1, nombre: 'Tarjeta de identidad' },
-  { id: 2, nombre: 'Cédula de Ciudadanía' },
-  { id: 3, nombre: 'Cédula de Extranjería' },
-  { id: 4, nombre: 'NIT' },
-  { id: 5, nombre: 'Pasaporte' }
+  { 
+    id: 1, 
+    nombre: 'Tarjeta de identidad', 
+    edadMin: 14, 
+    edadMax: 17,
+    patron: /^\d{10}$/,
+    mensaje: 'debe tener 10 dígitos exactos',
+    formato: 'XXXXXXXXXX'
+  },
+  { 
+    id: 2, 
+    nombre: 'Cédula de Ciudadanía', 
+    edadMin: 18, 
+    edadMax: null,
+    patron: /^\d{6,10}$/,
+    mensaje: 'debe tener entre 6 y 10 dígitos',
+    formato: 'XXXXXXXXXX'
+  },
+  { 
+    id: 3, 
+    nombre: 'Cédula de Extranjería', 
+    edadMin: 18, 
+    edadMax: null,
+    patron: /^\d{6,12}$/,
+    mensaje: 'debe tener entre 6 y 12 dígitos',
+    formato: 'XXXXXXXXXXXX'
+  },
+  { 
+    id: 4, 
+    nombre: 'NIT', 
+    edadMin: 18, 
+    edadMax: null,
+    patron: /^\d{9}-\d{1}$/,
+    mensaje: 'debe tener 9 dígitos, guión y dígito de verificación',
+    formato: 'XXXXXXXXX-X'
+  }
 ];
+
+const formatearNIT = (valor) => {
+  const soloNumeros = valor.replace(/[^\d-]/g, '');
+  
+  if (soloNumeros.length <= 9) {
+    return soloNumeros;
+  }
+  
+  const base = soloNumeros.slice(0, 9);
+  const verificacion = soloNumeros.slice(9).replace(/-/g, '');
+  
+  if (verificacion.length > 0) {
+    return `${base}-${verificacion.slice(0, 1)}`;
+  }
+  
+  return base;
+};
 
 const AREAS_TRABAJO = [
   { id: 1, nombre: 'Mantenimiento' },
@@ -36,10 +83,8 @@ const AREAS_TRABAJO = [
   { id: 7, nombre: 'Enchape' },
   { id: 8, nombre: 'Cerrajería' },
   { id: 9, nombre: 'Instalación' },
-  { id: 10, nombre: 'Administración' },
   { id: 11, nombre: 'Diseño' },
-  { id: 12, nombre: 'SST' },
-  { id: 13, nombre: 'Gestión humana' }
+  { id: 12, nombre: 'SST' }
 ];
 
 const Register = () => {
@@ -57,53 +102,182 @@ const Register = () => {
     confirmar_contrasena: ''
   });
 
-  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const calcularEdad = (fechaNacimiento) => {
+    const hoy = new Date();
+    const fechaNac = new Date(fechaNacimiento);
+    let edad = hoy.getFullYear() - fechaNac.getFullYear();
+    const mes = hoy.getMonth() - fechaNac.getMonth();
+    
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
+      edad--;
+    }
+    return edad;
+  };
+
+  const validarEdadSegunDocumento = (fechaNacimiento, tipoDocumentoId) => {
+    if (!fechaNacimiento || !tipoDocumentoId) return true;
+    
+    const tipoDocumento = TIPOS_DOCUMENTO.find(tipo => tipo.id === Number(tipoDocumentoId));
+    if (!tipoDocumento) return true;
+
+    const edad = calcularEdad(fechaNacimiento);
+    const { edadMin, edadMax } = tipoDocumento;
+
+    if (edad < edadMin) {
+      return `La edad mínima para ${tipoDocumento.nombre} es ${edadMin} años`;
+    }
+
+    if (edadMax && edad > edadMax) {
+      return `La edad máxima para ${tipoDocumento.nombre} es ${edadMax} años`;
+    }
+
+    return null;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    
+    if (name === 'numero_documento') {
+      if (Number(formData.tipo_documento_id) === 4) {
+        const valorFormateado = formatearNIT(value);
+        setFormData(prev => ({
+          ...prev,
+          [name]: valorFormateado
+        }));
+    
+        const tipoDoc = TIPOS_DOCUMENTO.find(tipo => tipo.id === 4);
+        if (!tipoDoc.patron.test(valorFormateado) && valorFormateado.length > 0) {
+          setFieldErrors(prev => ({
+            ...prev,
+            [name]: tipoDoc.mensaje
+          }));
+        }
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+    
+        const tipoDoc = TIPOS_DOCUMENTO.find(tipo => 
+          tipo.id === Number(formData.tipo_documento_id)
+        );
+        if (tipoDoc && !tipoDoc.patron.test(value) && value.length > 0) {
+          setFieldErrors(prev => ({
+            ...prev,
+            [name]: tipoDoc.mensaje
+          }));
+        }
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+
+    setFieldErrors(prev => ({
       ...prev,
-      [name]: value
+      [name]: ''
     }));
+
+    if (name === 'fecha_nacimiento' || name === 'tipo_documento_id') {
+      const fechaNac = name === 'fecha_nacimiento' ? value : formData.fecha_nacimiento;
+      const tipoDoc = name === 'tipo_documento_id' ? value : formData.tipo_documento_id;
+      
+      const errorEdad = validarEdadSegunDocumento(fechaNac, tipoDoc);
+      if (errorEdad) {
+        setFieldErrors(prev => ({
+          ...prev,
+          fecha_nacimiento: errorEdad
+        }));
+      }
+    }
+
+    if (name === 'telefono' && value) {
+      const telefonoRegex = /^3\d{9}$/;
+      if (!telefonoRegex.test(value)) {
+        setFieldErrors(prev => ({
+          ...prev,
+          telefono: 'El número debe empezar con 3 y tener 10 dígitos'
+        }));
+      }
+    }
+
+    if (name === 'correo') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) {
+        setFieldErrors(prev => ({
+          ...prev,
+          correo: 'Ingrese un correo electrónico válido'
+        }));
+      }
+    }
   };
 
   const validateForm = () => {
+    const newErrors = {};
+    
+    if (formData.fecha_nacimiento && formData.tipo_documento_id) {
+      const tipoDoc = TIPOS_DOCUMENTO.find(tipo => tipo.id === Number(formData.tipo_documento_id));
+      const edad = calcularEdad(formData.fecha_nacimiento);
+      
+      if (tipoDoc) {
+        if (edad < tipoDoc.edadMin || (tipoDoc.edadMax && edad > tipoDoc.edadMax)) {
+          newErrors.fecha_nacimiento = `Para ${tipoDoc.nombre} debe tener ${
+            tipoDoc.edadMax ? 
+              `entre ${tipoDoc.edadMin} y ${tipoDoc.edadMax}` : 
+              `mínimo ${tipoDoc.edadMin}`
+          } años`;
+        }
+      }
+    }
+  
+    if (!formData.correo) {
+      newErrors.correo = 'Por favor ingresa tu correo electrónico';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
+      newErrors.correo = 'El formato del correo electrónico no es válido';
+    }
+  
+    if (formData.telefono && !/^3\d{9}$/.test(formData.telefono)) {
+      newErrors.telefono = 'El número debe empezar con 3 y tener 10 dígitos';
+    }
+  
+    if (!formData.contrasena) {
+      newErrors.contrasena = 'Por favor ingresa una contraseña';
+    } else {
+      const tieneMinuscula = /[a-z]/.test(formData.contrasena);
+      const tieneMayuscula = /[A-Z]/.test(formData.contrasena);
+      const tieneNumero = /[0-9]/.test(formData.contrasena);
+      const tieneEspecial = /[!@#$%^&*(),.?":{}|<>]/.test(formData.contrasena);
+      const longitudValida = formData.contrasena.length >= 8;
+  
+      if (!longitudValida || !tieneMinuscula || !tieneMayuscula || !tieneNumero || !tieneEspecial) {
+        newErrors.contrasena = 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial';
+      }
+    }
+  
     if (formData.contrasena !== formData.confirmar_contrasena) {
-      setError('Las contraseñas no coinciden');
-      return false;
+      newErrors.confirmar_contrasena = 'Las contraseñas no coinciden';
     }
-
-    const requiredFields = [
-      'nombre_completo',
-      'correo',
-      'fecha_nacimiento',
-      'tipo_documento_id',
-      'numero_documento',
-      'area_trabajo_id',
-      'contrasena'
-    ];
-
-    const emptyFields = requiredFields.filter(field => !formData[field]);
-    if (emptyFields.length > 0) {
-      setError('Por favor complete todos los campos obligatorios');
-      return false;
-    }
-
-    return true;
+  
+    setFieldErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setError('');
+    setGeneralError('');
     setLoading(true);
 
     try {
-      // Excluimos confirmar_contrasena usando destructuring
       const dataToSend = Object.fromEntries(
         Object.entries(formData).filter(([key]) => key !== 'confirmar_contrasena')
       );
@@ -115,26 +289,93 @@ const Register = () => {
           state: { message: 'Registro exitoso. Por favor inicie sesión.' } 
         });
       } else {
-        setError(result.error);
+        setGeneralError(result.error);
       }
     } catch {
-      setError('Error al registrar usuario. Por favor, intente nuevamente.');
+      setGeneralError('Error al registrar usuario. Por favor, intente nuevamente.');
     } finally {
       setLoading(false);
     }
   };
 
+  const renderTextField = (name, label, options = {}) => {
+    const {
+      type = 'text',
+      required = true,
+      select = false,
+      items = [],
+      multiline = false,
+      rows = 1,
+      inputProps = {},
+      placeholder,
+      helperText,
+      InputLabelProps = {}
+    } = options;
+
+    return (
+      <TextField
+        fullWidth
+        label={label}
+        name={name}
+        type={type}
+        value={formData[name]}
+        onChange={handleChange}
+        required={required}
+        select={select}
+        multiline={multiline}
+        rows={rows}
+        error={Boolean(fieldErrors[name])}
+        helperText={helperText || fieldErrors[name]}
+        placeholder={placeholder}
+        InputLabelProps={{
+          shrink: true,
+          ...InputLabelProps
+        }}
+        inputProps={{
+          ...(type === 'date' ? { placeholder: 'dd/mm/aaaa' } : {}),
+          ...inputProps
+        }}
+        InputProps={{
+          endAdornment: fieldErrors[name] ? (
+            <InputAdornment position="end">
+              <ErrorIcon color="error" />
+            </InputAdornment>
+          ) : null
+        }}
+      >
+        {select && items.map(item => (
+          <MenuItem key={item.id} value={item.id}>
+            {item.nombre}
+          </MenuItem>
+        ))}
+      </TextField>
+    );
+  };
+
+  const renderDocumentoInput = () => {
+    const tipoDoc = TIPOS_DOCUMENTO.find(
+      tipo => tipo.id === Number(formData.tipo_documento_id)
+    );
+
+    return renderTextField('numero_documento', 'Número de Documento', {
+      placeholder: tipoDoc ? `Ejemplo: ${tipoDoc.formato}` : 'XXXXXXXXXX',
+      inputProps: {
+        maxLength: tipoDoc?.id === 4 ? 11 : 12,
+        pattern: tipoDoc?.id === 4 ? '\\d{9}-\\d{1}' : undefined,
+      },
+      helperText: tipoDoc?.mensaje || '',
+    });
+  };
+
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(45deg, #F5DEB3 30%, #DEB887 90%)',
-        padding: 3
-      }}
-    >
+    <Box sx={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(45deg, #F5DEB3 30%, #DEB887 90%)',
+      padding: 3
+    }}>
       <Card sx={{ maxWidth: 800, width: '100%' }}>
         <CardContent sx={{ padding: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 3 }}>
@@ -146,105 +387,66 @@ const Register = () => {
             </Typography>
           </Box>
 
-          {error && (
+          {generalError && (
             <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
+              {generalError}
             </Alert>
           )}
 
           <form onSubmit={handleSubmit}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Nombre Completo"
-                  name="nombre_completo"
-                  value={formData.nombre_completo}
-                  onChange={handleChange}
-                  required
-                />
+                {renderTextField('nombre_completo', 'Nombre Completo')}
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Correo Electrónico"
-                  name="correo"
-                  type="email"
-                  value={formData.correo}
-                  onChange={handleChange}
-                  required
-                />
+                {renderTextField('correo', 'Correo Electrónico', { type: 'email' })}
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Fecha de Nacimiento"
-                  name="fecha_nacimiento"
-                  type="date"
-                  value={formData.fecha_nacimiento}
-                  onChange={handleChange}
-                  required
-                  InputLabelProps={{ shrink: true }}
-                />
+                {renderTextField('fecha_nacimiento', 'Fecha de Nacimiento', {
+                  type: 'date',
+                  InputLabelProps: { 
+                    shrink: true,
+                    style: { transform: 'translate(14px, -9px) scale(0.75)' }
+                  }
+                })}
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Tipo de Documento"
-                  name="tipo_documento_id"
-                  value={formData.tipo_documento_id}
-                  onChange={handleChange}
-                  required
-                >
-                  {TIPOS_DOCUMENTO.map((tipo) => (
-                    <MenuItem key={tipo.id} value={tipo.id}>
-                      {tipo.nombre}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                {renderTextField('tipo_documento_id', 'Tipo de Documento', {
+                  select: true,
+                  items: TIPOS_DOCUMENTO
+                })}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                {renderDocumentoInput()}
+                {Number(formData.tipo_documento_id) === 4 && (
+                  <Typography 
+                    variant="caption" 
+                    color="textSecondary" 
+                    sx={{ mt: 1, display: 'block' }}
+                  >
+                    El NIT debe tener 9 dígitos seguidos de un guión y el dígito de verificación
+                  </Typography>
+                )}
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Número de Documento"
-                  name="numero_documento"
-                  value={formData.numero_documento}
-                  onChange={handleChange}
-                  required
-                />
+                {renderTextField('area_trabajo_id', 'Área de Trabajo', {
+                  select: true,
+                  items: AREAS_TRABAJO
+                })}
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Área de Trabajo"
-                  name="area_trabajo_id"
-                  value={formData.area_trabajo_id}
-                  onChange={handleChange}
-                  required
-                >
-                  {AREAS_TRABAJO.map((area) => (
-                    <MenuItem key={area.id} value={area.id}>
-                      {area.nombre}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Teléfono (Opcional)"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={handleChange}
-                />
+                {renderTextField('telefono', 'Teléfono', {
+                  required: false,
+                  inputProps: {
+                    pattern: '^3\\d{9}$',
+                    placeholder: 'XXXXXXXXXX'
+                  }
+                })}
               </Grid>
 
               <Grid item xs={12} sm={6}>
@@ -256,6 +458,8 @@ const Register = () => {
                   value={formData.contrasena}
                   onChange={handleChange}
                   required
+                  error={Boolean(fieldErrors.contrasena)}
+                  helperText={fieldErrors.contrasena}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -280,6 +484,8 @@ const Register = () => {
                   value={formData.confirmar_contrasena}
                   onChange={handleChange}
                   required
+                  error={Boolean(fieldErrors.confirmar_contrasena)}
+                  helperText={fieldErrors.confirmar_contrasena}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">

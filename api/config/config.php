@@ -1,5 +1,4 @@
 <?php
-
 // Configuración de la base de datos
 define('DB_HOST', '127.0.0.1');  // localhost
 define('DB_PORT', '3306');       // Este es el puerto por defecto de MySQL
@@ -24,5 +23,4 @@ ini_set('display_errors', 1); // Esto asegura que los errores se muestren en pan
 
 // Zona horaria
 date_default_timezone_set('America/Bogota');
-
 ?>

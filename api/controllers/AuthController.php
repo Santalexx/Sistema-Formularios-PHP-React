@@ -1,15 +1,26 @@
 <?php
 
+// Incluimos los archivos necesarios para que el controlador funcione
 require_once __DIR__ . '/../models/Usuario.php';
 require_once __DIR__ . '/../utils/JWT.php';
 require_once __DIR__ . '/../utils/Validator.php';
 
+/**
+ * Esta clase se encarga de manejar todo lo relacionado con la cuenta del usuario:
+ * - Crear cuenta nueva (registro)
+ * - Iniciar sesión (login)
+ * - Ver información del perfil
+ * - Actualizar datos del perfil
+ * - Cambiar contraseña
+ */
 class AuthController
 {
-    private $db;
-    private $usuario;
-    private $validator;
+    // Guardamos las herramientas que vamos a usar frecuentemente
+    private $db;            // Para conectarnos a la base de datos
+    private $usuario;       // Para manejar las operaciones con usuarios
+    private $validator;     // Para validar datos como correos, contraseñas, etc.
 
+    // Cuando creamos el controlador, preparamos todas las herramientas
     public function __construct()
     {
         $database = new Database();
@@ -19,91 +30,85 @@ class AuthController
     }
 
     /**
-     * Procesa las solicitudes entrantes
-     * @param string $metodo Método HTTP
-     * @param string|null $parametro Parámetro adicional de la URL
+     * Este método es como un guardia que recibe todas las peticiones y las dirige 
+     * al lugar correcto según lo que el usuario quiere hacer
      */
     public function procesarSolicitud($metodo, $parametro = null)
     {
-        switch ($metodo) {
-            case 'POST':
-                if ($parametro === 'login') {
-                    $this->login();
-                } elseif ($parametro === 'registro') {
-                    $this->registro();
-                } else {
-                    http_response_code(404);
-                    echo json_encode(['mensaje' => 'Endpoint no encontrado']);
-                }
-                break;
-            case 'GET':
-                if ($parametro === 'perfil') {
-                    $this->obtenerPerfil();
-                } else {
-                    http_response_code(404);
-                    echo json_encode(['mensaje' => 'Endpoint no encontrado']);
-                }
-                break;
-            case 'PUT':
-                if ($parametro === 'actualizar-perfil') {
-                    $this->actualizarPerfil();
-                } elseif ($parametro === 'cambiar-contrasena') {
-                    $this->cambiarContrasena();
-                } else {
-                    http_response_code(404);
-                    echo json_encode(['mensaje' => 'Endpoint no encontrado']);
-                }
-                break;
-            default:
-                http_response_code(405);
-                echo json_encode(['mensaje' => 'Método no permitido']);
-                break;
+        // Definimos qué acciones están permitidas y qué método debe atenderlas
+        $acciones_permitidas = [
+            'POST' => [
+                'login' => [$this, 'login'],
+                'registro' => [$this, 'registro']
+            ],
+            'GET' => [
+                'perfil' => [$this, 'obtenerPerfil']
+            ],
+            'PUT' => [
+                'actualizar-perfil' => [$this, 'actualizarPerfil'],
+                'cambiar-contrasena' => [$this, 'cambiarContrasena']
+            ]
+        ];
+
+        // Si el método no está permitido, enviamos un error
+        if (!isset($acciones_permitidas[$metodo])) {
+            $this->responder(405, 'Este tipo de petición no está permitida');
+            return;
         }
+
+        // Si la acción solicitada no existe, enviamos un error
+        if (!isset($acciones_permitidas[$metodo][$parametro])) {
+            $this->responder(404, 'No encontramos lo que estás buscando');
+            return;
+        }
+
+        // Si todo está bien, ejecutamos la acción solicitada
+        call_user_func($acciones_permitidas[$metodo][$parametro]);
     }
 
     /**
-     * Maneja el login de usuarios
+     * Maneja el proceso de inicio de sesión de los usuarios
      */
     private function login()
     {
-        // Obtener datos POST
+        // Obtenemos los datos que envió el usuario
         $datos = json_decode(file_get_contents("php://input"));
 
+        // Verificamos que nos hayan enviado el correo y la contraseña
         if (!isset($datos->correo) || !isset($datos->contrasena)) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'Faltan datos requeridos']);
+            $this->responder(400, 'Necesitamos tu correo y contraseña para continuar');
             return;
         }
 
-        // Validar correo
+        // Verificamos que el correo tenga un formato válido
         if (!$this->validator->validarCorreo($datos->correo)) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => $this->validator->obtenerErrores()['correo']]);
+            $this->responder(400, $this->validator->obtenerErrores()['correo']);
             return;
         }
 
-        // Intentar login
+        // Intentamos hacer login con los datos proporcionados
         $usuario = $this->usuario->login($datos->correo, $datos->contrasena);
 
         if ($usuario) {
-            // Crear token JWT
+            // Si el login es exitoso, creamos un token de acceso
             $token = JWT::crearToken([
                 'id' => $usuario['id'],
                 'correo' => $usuario['correo'],
                 'rol_id' => $usuario['rol_id']
             ]);
 
-            // Eliminar la contraseña del array de respuesta
+            // Por seguridad, quitamos la contraseña antes de enviar los datos
             unset($usuario['contrasena']);
 
-            echo json_encode([
-                'mensaje' => 'Login exitoso',
+            // Enviamos la respuesta exitosa
+            $this->responder(200, [
+                'mensaje' => '¡Bienvenido!',
                 'token' => $token,
                 'usuario' => $usuario
             ]);
         } else {
-            http_response_code(401);
-            echo json_encode(['mensaje' => 'Credenciales inválidas']);
+            // Si el login falla, enviamos un mensaje de error
+            $this->responder(401, 'El correo o la contraseña no son correctos');
         }
     }
 
@@ -112,11 +117,11 @@ class AuthController
      */
     private function registro()
     {
-        // Obtener datos POST
+        // Obtenemos los datos que envió el usuario
         $datos = json_decode(file_get_contents("php://input"));
 
-        // Verificar datos requeridos
-        $camposRequeridos = [
+        // Lista de campos que necesitamos para crear una cuenta
+        $campos_necesarios = [
             'nombre_completo',
             'correo',
             'fecha_nacimiento',
@@ -126,215 +131,228 @@ class AuthController
             'contrasena'
         ];
 
-        foreach ($camposRequeridos as $campo) {
+        // Verificamos que no falte ningún campo requerido
+        foreach ($campos_necesarios as $campo) {
             if (!isset($datos->$campo)) {
-                http_response_code(400);
-                echo json_encode(['mensaje' => "El campo $campo es requerido"]);
+                $this->responder(400, "Por favor, completa el campo: $campo");
                 return;
             }
         }
 
-        // Validar datos
-        if (!$this->validator->validarCorreo($datos->correo)) {
-            http_response_code(400);
-            echo json_encode(['errores' => ['correo' => $this->validator->obtenerErrores()['correo']]]);
-            return;
+        // Validamos cada campo individual
+        if (!$this->validarDatosRegistro($datos)) {
+            return; // La función validarDatosRegistro ya envía el mensaje de error
         }
 
-        if (!$this->validator->validarContrasena($datos->contrasena)) {
-            http_response_code(400);
-            echo json_encode(['errores' => ['contrasena' => $this->validator->obtenerErrores()['contrasena']]]);
-            return;
-        }
-
-        if (!$this->validator->validarFechaNacimiento($datos->fecha_nacimiento)) {
-            http_response_code(400);
-            echo json_encode(['errores' => ['fecha_nacimiento' => $this->validator->obtenerErrores()['fecha_nacimiento']]]);
-            return;
-        }
-
-        if (!$this->validator->validarDocumento($datos->numero_documento, $datos->tipo_documento_id)) {
-            http_response_code(400);
-            echo json_encode(['errores' => ['documento' => $this->validator->obtenerErrores()['numero_documento']]]);
-            return;
-        }
-
-        if (isset($datos->telefono) && !$this->validator->validarTelefono($datos->telefono)) {
-            http_response_code(400);
-            echo json_encode(['errores' => ['telefono' => $this->validator->obtenerErrores()['telefono']]]);
-            return;
-        }
-
-        // Verificar si el correo ya existe
+        // Verificamos que el correo no esté ya registrado
         $this->usuario->correo = $datos->correo;
         if ($this->usuario->existeCorreo()) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'El correo ya está registrado']);
+            $this->responder(400, 'Este correo ya está registrado');
             return;
         }
 
-        // Verificar si el documento ya existe
+        // Verificamos que el documento no esté ya registrado
         $this->usuario->numero_documento = $datos->numero_documento;
         if ($this->usuario->existeDocumento()) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'El número de documento ya está registrado']);
+            $this->responder(400, 'Este número de documento ya está registrado');
             return;
         }
 
-        // Asignar datos al objeto usuario
+        // Si todas las validaciones pasan, preparamos los datos del usuario
         $this->usuario->nombre_completo = $datos->nombre_completo;
         $this->usuario->fecha_nacimiento = $datos->fecha_nacimiento;
         $this->usuario->tipo_documento_id = $datos->tipo_documento_id;
         $this->usuario->area_trabajo_id = $datos->area_trabajo_id;
         $this->usuario->telefono = $datos->telefono ?? null;
         $this->usuario->contrasena = $datos->contrasena;
-        $this->usuario->rol_id = 2; // Rol por defecto: Usuario
+        $this->usuario->rol_id = 2; // Asignamos el rol de usuario normal
 
-        // Intentar crear el usuario
+        // Intentamos crear el usuario en la base de datos
         if ($this->usuario->crear()) {
-            http_response_code(201);
-            echo json_encode(['mensaje' => 'Usuario creado exitosamente']);
+            $this->responder(201, '¡Cuenta creada exitosamente!');
         } else {
-            http_response_code(500);
-            echo json_encode(['mensaje' => 'Error al crear el usuario']);
+            $this->responder(500, 'Hubo un problema al crear la cuenta. Por favor, intenta de nuevo');
         }
     }
 
     /**
-     * Obtiene el perfil del usuario autenticado
+     * Permite a los usuarios ver su información de perfil
      */
     private function obtenerPerfil()
     {
-        $headers = getallheaders();
-
-        if (!isset($headers['Authorization'])) {
-            http_response_code(401);
-            echo json_encode(['mensaje' => 'Token no proporcionado']);
+        // Verificamos que el usuario esté autenticado
+        $usuario = $this->verificarAutenticacion();
+        if (!$usuario) {
             return;
         }
 
-        $token = str_replace('Bearer ', '', $headers['Authorization']);
-        $datos = JWT::verificarToken($token);
-
-        if (!$datos) {
-            http_response_code(401);
-            echo json_encode(['mensaje' => 'Token inválido o expirado']);
-            return;
-        }
-
-        $perfil = $this->usuario->obtenerPorId($datos['id']);
+        // Buscamos los datos del usuario
+        $perfil = $this->usuario->obtenerPorId($usuario['id']);
 
         if ($perfil) {
-            unset($perfil['contrasena']); // No enviar la contraseña
-            echo json_encode(['usuario' => $perfil]);
+            // Por seguridad, quitamos la contraseña antes de enviar los datos
+            unset($perfil['contrasena']);
+            $this->responder(200, ['usuario' => $perfil]);
         } else {
-            http_response_code(404);
-            echo json_encode(['mensaje' => 'Usuario no encontrado']);
+            $this->responder(404, 'No encontramos tu perfil');
         }
     }
 
     /**
-     * Actualiza el perfil del usuario
+     * Permite a los usuarios actualizar su información de perfil
      */
     private function actualizarPerfil()
     {
-        $headers = getallheaders();
-
-        if (!isset($headers['Authorization'])) {
-            http_response_code(401);
-            echo json_encode(['mensaje' => 'Token no proporcionado']);
+        // Verificamos que el usuario esté autenticado
+        $usuario = $this->verificarAutenticacion();
+        if (!$usuario) {
             return;
         }
 
-        $token = str_replace('Bearer ', '', $headers['Authorization']);
-        $datos_token = JWT::verificarToken($token);
-
-        if (!$datos_token) {
-            http_response_code(401);
-            echo json_encode(['mensaje' => 'Token inválido o expirado']);
-            return;
-        }
-
+        // Obtenemos los datos que el usuario quiere actualizar
         $datos = json_decode(file_get_contents("php://input"));
 
+        // Verificamos que nos hayan enviado los datos mínimos necesarios
         if (!isset($datos->nombre_completo) || !isset($datos->fecha_nacimiento)) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'Faltan datos requeridos']);
+            $this->responder(400, 'Necesitamos tu nombre y fecha de nacimiento');
             return;
         }
 
-        // Validar fecha de nacimiento
+        // Validamos la fecha de nacimiento
         if (!$this->validator->validarFechaNacimiento($datos->fecha_nacimiento)) {
-            http_response_code(400);
-            echo json_encode(['errores' => ['fecha_nacimiento' => $this->validator->obtenerErrores()['fecha_nacimiento']]]);
+            $this->responder(400, $this->validator->obtenerErrores()['fecha_nacimiento']);
             return;
         }
 
-        // Validar teléfono si está presente
+        // Validamos el teléfono si fue proporcionado
         if (isset($datos->telefono) && !$this->validator->validarTelefono($datos->telefono)) {
-            http_response_code(400);
-            echo json_encode(['errores' => ['telefono' => $this->validator->obtenerErrores()['telefono']]]);
+            $this->responder(400, $this->validator->obtenerErrores()['telefono']);
             return;
         }
 
-        $this->usuario->id = $datos_token['id'];
+        // Preparamos los datos para actualizar
+        $this->usuario->id = $usuario['id'];
         $this->usuario->nombre_completo = $datos->nombre_completo;
         $this->usuario->fecha_nacimiento = $datos->fecha_nacimiento;
         $this->usuario->area_trabajo_id = $datos->area_trabajo_id;
         $this->usuario->telefono = $datos->telefono ?? null;
 
+        // Intentamos actualizar el perfil
         if ($this->usuario->actualizar()) {
-            echo json_encode(['mensaje' => 'Perfil actualizado exitosamente']);
+            $this->responder(200, 'Perfil actualizado exitosamente');
         } else {
-            http_response_code(500);
-            echo json_encode(['mensaje' => 'Error al actualizar el perfil']);
+            $this->responder(500, 'Hubo un problema al actualizar tu perfil');
         }
     }
 
     /**
-     * Cambiar contraseña del usuario
+     * Permite a los usuarios cambiar su contraseña
      */
     private function cambiarContrasena()
     {
-        $headers = getallheaders();
-
-        if (!isset($headers['Authorization'])) {
-            http_response_code(401);
-            echo json_encode(['mensaje' => 'Token no proporcionado']);
+        // Verificamos que el usuario esté autenticado
+        $usuario = $this->verificarAutenticacion();
+        if (!$usuario) {
             return;
         }
 
-        $token = str_replace('Bearer ', '', $headers['Authorization']);
-        $datos_token = JWT::verificarToken($token);
-
-        if (!$datos_token) {
-            http_response_code(401);
-            echo json_encode(['mensaje' => 'Token inválido o expirado']);
-            return;
-        }
-
+        // Obtenemos los datos enviados
         $datos = json_decode(file_get_contents("php://input"));
 
+        // Verificamos que nos hayan enviado ambas contraseñas
         if (!isset($datos->contrasena_actual) || !isset($datos->contrasena_nueva)) {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'Faltan datos requeridos']);
+            $this->responder(400, 'Necesitamos tu contraseña actual y la nueva');
             return;
         }
 
-        // Validar nueva contraseña
+        // Validamos que la nueva contraseña cumpla con los requisitos
         if (!$this->validator->validarContrasena($datos->contrasena_nueva)) {
-            http_response_code(400);
-            echo json_encode(['errores' => ['contrasena' => $this->validator->obtenerErrores()['contrasena']]]);
+            $this->responder(400, $this->validator->obtenerErrores()['contrasena']);
             return;
         }
 
-        $this->usuario->id = $datos_token['id'];
-
+        // Intentamos cambiar la contraseña
+        $this->usuario->id = $usuario['id'];
         if ($this->usuario->cambiarContrasena($datos->contrasena_actual, $datos->contrasena_nueva)) {
-            echo json_encode(['mensaje' => 'Contraseña actualizada exitosamente']);
+            $this->responder(200, 'Contraseña actualizada exitosamente');
         } else {
-            http_response_code(400);
-            echo json_encode(['mensaje' => 'La contraseña actual es incorrecta']);
+            $this->responder(400, 'La contraseña actual no es correcta');
+        }
+    }
+
+    /**
+     * Verifica que el usuario esté autenticado correctamente
+     */
+    private function verificarAutenticacion()
+    {
+        $headers = getallheaders();
+
+        // Verificamos que se haya enviado el token
+        if (!isset($headers['Authorization'])) {
+            $this->responder(401, 'Por favor, inicia sesión para continuar');
+            return false;
+        }
+
+        // Extraemos y verificamos el token
+        $token = str_replace('Bearer ', '', $headers['Authorization']);
+        $datos = JWT::verificarToken($token);
+
+        if (!$datos) {
+            $this->responder(401, 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo');
+            return false;
+        }
+
+        return $datos;
+    }
+
+    /**
+     * Valida todos los campos necesarios para el registro
+     */
+    private function validarDatosRegistro($datos)
+    {
+        // Validamos el correo
+        if (!$this->validator->validarCorreo($datos->correo)) {
+            $this->responder(400, $this->validator->obtenerErrores()['correo']);
+            return false;
+        }
+
+        // Validamos la contraseña
+        if (!$this->validator->validarContrasena($datos->contrasena)) {
+            $this->responder(400, $this->validator->obtenerErrores()['contrasena']);
+            return false;
+        }
+
+        // Validamos la fecha de nacimiento
+        if (!$this->validator->validarFechaNacimiento($datos->fecha_nacimiento)) {
+            $this->responder(400, $this->validator->obtenerErrores()['fecha_nacimiento']);
+            return false;
+        }
+
+        // Validamos el documento
+        if (!$this->validator->validarDocumento($datos->numero_documento, $datos->tipo_documento_id)) {
+            $this->responder(400, $this->validator->obtenerErrores()['numero_documento']);
+            return false;
+        }
+
+        // Validamos el teléfono si fue proporcionado
+        if (isset($datos->telefono) && !$this->validator->validarTelefono($datos->telefono)) {
+            $this->responder(400, $this->validator->obtenerErrores()['telefono']);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Envía una respuesta al cliente en formato JSON
+     */
+    private function responder($codigo, $mensaje)
+    {
+        http_response_code($codigo);
+        if (is_string($mensaje)) {
+            echo json_encode(['mensaje' => $mensaje]);
+        } else {
+            echo json_encode($mensaje);
         }
     }
 }

@@ -6,6 +6,10 @@ import {
   Box,
   CssBaseline,
   Drawer,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   IconButton,
   List,
   ListItem,
@@ -29,6 +33,7 @@ const drawerWidth = 240;
 const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const navigate = useNavigate();
 
   const handleDrawerToggle = () => {
@@ -36,8 +41,17 @@ const AdminLayout = () => {
   };
 
   const handleLogout = () => {
+    setShowLogoutDialog(true);
+  };
+
+  const confirmLogout = () => {
     logout();
     navigate('/login');
+    setShowLogoutDialog(false);
+  };
+
+  const handleCloseLogoutDialog = () => {
+    setShowLogoutDialog(false);
   };
 
   const menuItems = [
@@ -160,6 +174,29 @@ const AdminLayout = () => {
       >
         <Outlet />
       </Box>
+      <Dialog 
+        open={showLogoutDialog} 
+        onClose={handleCloseLogoutDialog} 
+        maxWidth="xs" 
+        fullWidth
+      >
+        <DialogTitle>Confirmar Cierre de Sesión</DialogTitle>
+        <DialogContent>
+          ¿Está seguro que desea cerrar la sesión?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseLogoutDialog}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={confirmLogout} 
+            variant="contained" 
+            color="primary"
+          >
+            Cerrar Sesión
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
