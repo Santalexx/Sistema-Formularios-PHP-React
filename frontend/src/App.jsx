@@ -10,6 +10,7 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 
 // Componentes de administrador
+import AdminDashboard from './components/admin/AdminDashboard';
 import AdminLayout from './components/admin/AdminLayout';
 import QuestionManagement from './components/admin/QuestionManagement';
 import Statistics from './components/admin/Statistics';
@@ -79,7 +80,7 @@ function App() {
             <AdminLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<Statistics />} />
+          <Route index element={<AdminDashboard />} />
           <Route path="preguntas" element={<QuestionManagement />} />
           <Route path="estadisticas" element={<Statistics />} />
         </Route>
