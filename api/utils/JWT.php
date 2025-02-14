@@ -16,37 +16,20 @@ class JWT
     private const ERROR_FIRMA = 'Firma del token inválida';
     private const ERROR_EXPIRADO = 'El token ha expirado';
 
-    /**
-     * Convierte datos a formato base64url
-     * Este formato es seguro para URLs y no contiene caracteres especiales
-     * 
-     * @param string $datos Datos a codificar
-     * @return string Datos codificados en base64url
-     */
+    // Convierte datos a formato base64url Este formato es seguro para URLs y no contiene caracteres especiales @param string $datos Datos a codificar @return string Datos codificados en base64url
     private static function base64url_encode($datos)
     {
         return rtrim(strtr(base64_encode($datos), '+/', '-_'), '=');
     }
 
-    /**
-     * Convierte datos de base64url a su formato original
-     * 
-     * @param string $datos Datos en formato base64url
-     * @return string Datos decodificados
-     */
+    // Convierte datos de base64url a su formato original @param string $datos Datos en formato base64url @return string Datos decodificados
     private static function base64url_decode($datos)
     {
         $padding = str_repeat('=', 3 - (3 + strlen($datos)) % 4);
         return base64_decode(strtr($datos, '-_', '+/') . $padding);
     }
 
-    /**
-     * Crea un nuevo token JWT con los datos proporcionados
-     * 
-     * @param array $payload Datos que se incluirán en el token
-     * @return string Token JWT generado
-     * @throws Exception si hay error al crear el token
-     */
+    // Crea un nuevo token JWT con los datos proporcionados @param array $payload Datos que se incluirán en el token @return string Token JWT generado @throws Exception si hay error al crear el token
     public static function crearToken($payload)
     {
         try {
@@ -76,12 +59,7 @@ class JWT
         }
     }
 
-    /**
-     * Verifica y decodifica un token JWT
-     * 
-     * @param string $token Token JWT a verificar
-     * @return array|false Datos del token si es válido, false si no
-     */
+    // Verifica y decodifica un token JWT @param string $token Token JWT a verificar @return array|false Datos del token si es válido, false si no
     public static function verificarToken($token)
     {
         try {
@@ -119,13 +97,7 @@ class JWT
         }
     }
 
-    /**
-     * Obtiene los datos de un token sin verificar su firma
-     * Útil cuando solo necesitamos ver el contenido sin validar
-     * 
-     * @param string $token Token JWT
-     * @return array|null Datos del token o null si el formato es inválido
-     */
+    // Obtiene los datos de un token sin verificar su firma Útil cuando solo necesitamos ver el contenido sin validar @param string $token Token JWT @return array|null Datos del token o null si el formato es inválido
     public static function obtenerDatos($token)
     {
         try {
@@ -141,12 +113,7 @@ class JWT
         }
     }
 
-    /**
-     * Genera la firma digital para un dato usando el algoritmo configurado
-     * 
-     * @param string $datos Datos a firmar
-     * @return string Firma codificada en base64url
-     */
+    // Genera la firma digital para un dato usando el algoritmo configurado @param string $datos Datos a firmar @return string Firma codificada en base64url
     private static function generarFirma($datos)
     {
         $firma = hash_hmac(
@@ -159,5 +126,3 @@ class JWT
         return self::base64url_encode($firma);
     }
 }
-
-?>

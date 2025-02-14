@@ -20,19 +20,13 @@ class Respuesta
     public $respuesta;        // Texto o valor de la respuesta
     public $fecha_respuesta;  // Cuándo se dio la respuesta
 
-    /**
-     * Al crear una nueva instancia, guardamos la conexión a la base de datos
-     */
+    // Al crear una nueva instancia, guardamos la conexión a la base de datos
     public function __construct($db)
     {
         $this->conn = $db;
     }
 
-    /**
-     * Guarda una nueva respuesta en la base de datos
-     * 
-     * @return bool true si la respuesta se guardó correctamente, false si hubo un error
-     */
+    // Guarda una nueva respuesta en la base de datos @return bool true si la respuesta se guardó correctamente, false si hubo un error
     public function guardar()
     {
         try {
@@ -58,12 +52,7 @@ class Respuesta
         }
     }
 
-    /**
-     * Obtiene todas las respuestas de un usuario específico
-     * 
-     * @param int $usuario_id ID del usuario a consultar
-     * @return array Lista de respuestas con información relacionada
-     */
+    // Obtiene todas las respuestas de un usuario específico @param int $usuario_id ID del usuario a consultar @return array Lista de respuestas con información relacionada
     public function obtenerPorUsuario($usuario_id)
     {
         try {
@@ -91,12 +80,7 @@ class Respuesta
         }
     }
 
-    /**
-     * Obtiene todas las respuestas para una pregunta específica
-     * 
-     * @param int $pregunta_id ID de la pregunta a consultar
-     * @return array Lista de respuestas con información de los usuarios
-     */
+    // Obtiene todas las respuestas para una pregunta específica @param int $pregunta_id ID de la pregunta a consultar @return array Lista de respuestas con información de los usuarios
     public function obtenerPorPregunta($pregunta_id)
     {
         try {
@@ -121,13 +105,7 @@ class Respuesta
         }
     }
 
-    /**
-     * Verifica si un usuario ya respondió una pregunta específica
-     * 
-     * @param int $usuario_id ID del usuario
-     * @param int $pregunta_id ID de la pregunta
-     * @return bool true si ya respondió, false si no
-     */
+    // Verifica si un usuario ya respondió una pregunta específica @param int $usuario_id ID del usuario @param int $pregunta_id ID de la pregunta @return bool true si ya respondió, false si no.
     public function yaRespondio($usuario_id, $pregunta_id)
     {
         try {
@@ -148,12 +126,7 @@ class Respuesta
         }
     }
 
-    /**
-     * Obtiene estadísticas de las respuestas por módulo
-     * 
-     * @param int $modulo_id ID del módulo a analizar
-     * @return array Estadísticas de las respuestas
-     */
+    // Obtiene estadísticas de las respuestas por módulo @param int $modulo_id ID del módulo a analizar @return array Estadísticas de las respuestas
     public function obtenerEstadisticasPorModulo($modulo_id)
     {
         try {
@@ -185,11 +158,7 @@ class Respuesta
         }
     }
 
-    /**
-     * Actualiza una respuesta existente
-     * 
-     * @return bool true si la actualización fue exitosa, false si hubo un error
-     */
+    // Actualiza una respuesta existente @return bool true si la actualización fue exitosa, false si hubo un error
     public function actualizar()
     {
         try {
@@ -214,11 +183,7 @@ class Respuesta
         }
     }
 
-    /**
-     * Elimina una respuesta de la base de datos
-     * 
-     * @return bool true si se eliminó correctamente, false si hubo un error
-     */
+    // Elimina una respuesta de la base de datos @return bool true si se eliminó correctamente, false si hubo un error
     public function eliminar()
     {
         try {
@@ -236,17 +201,13 @@ class Respuesta
         }
     }
 
-    /**
-     * Limpia el texto para evitar código malicioso
-     */
+    // Limpia el texto para evitar código malicioso
     private function limpiarTexto($texto)
     {
         return htmlspecialchars(strip_tags($texto));
     }
 
-    /**
-     * Vincula los datos básicos de una respuesta con la consulta preparada
-     */
+    // Vincula los datos básicos de una respuesta con la consulta preparada
     private function vincularDatosRespuesta($stmt)
     {
         $stmt->bindParam(':usuario_id', $this->usuario_id);
@@ -254,5 +215,3 @@ class Respuesta
         $stmt->bindParam(':respuesta', $this->respuesta);
     }
 }
-
-?>

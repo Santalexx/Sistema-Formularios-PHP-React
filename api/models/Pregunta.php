@@ -21,19 +21,13 @@ class Pregunta
     public $activa;          // Indica si la pregunta está activa
     public $fecha_creacion;  // Fecha en que se creó la pregunta
 
-    /**
-     * Al crear una nueva instancia, guardamos la conexión a la base de datos
-     */
+    // 
     public function __construct($db)
     {
         $this->conn = $db;
     }
 
-    /**
-     * Crea una nueva pregunta en la base de datos
-     * 
-     * @return bool true si la pregunta se creó correctamente, false si hubo un error
-     */
+    // Crea una nueva pregunta en la base de datos @return bool true si la pregunta se creó correctamente, false si hubo un error
     public function crear()
     {
         try {
@@ -63,11 +57,7 @@ class Pregunta
         }
     }
 
-    /**
-     * Obtiene todas las preguntas activas junto con su información relacionada
-     * 
-     * @return array Lista de preguntas con sus módulos y tipos de respuesta
-     */
+    // Obtiene todas las preguntas activas junto con su información relacionad @return array Lista de preguntas con sus módulos y tipos de respuesta
     public function obtenerTodas()
     {
         // Preparamos la consulta que obtiene las preguntas y su información relacionada
@@ -91,11 +81,7 @@ class Pregunta
         }
     }
 
-    /**
-     * Obtiene una pregunta específica por su ID junto con su información relacionada
-     * 
-     * @return array|false Datos de la pregunta o false si no se encuentra
-     */
+    // Obtiene una pregunta específica por su ID junto con su información relacionada @return array|false Datos de la pregunta o false si no se encuentra
     public function obtenerPorId()
     {
         // Preparamos la consulta para obtener una pregunta específica
@@ -120,12 +106,7 @@ class Pregunta
         }
     }
 
-    /**
-     * Obtiene todas las preguntas de un módulo específico
-     * 
-     * @param int $modulo_id ID del módulo a consultar
-     * @return array Lista de preguntas del módulo
-     */
+    // Obtiene todas las preguntas de un módulo específico @param int $modulo_id ID del módulo a consultar @return array Lista de preguntas del módulo
     public function obtenerPorModulo($modulo_id)
     {
         // Preparamos la consulta para obtener preguntas de un módulo
@@ -148,11 +129,7 @@ class Pregunta
         }
     }
 
-    /**
-     * Actualiza una pregunta existente
-     * 
-     * @return bool true si la actualización fue exitosa, false si hubo un error
-     */
+    // Actualiza una pregunta existente @return bool true si la actualización fue exitosa, false si hubo un error
     public function actualizar()
     {
         try {
@@ -180,11 +157,7 @@ class Pregunta
         }
     }
 
-    /**
-     * Elimina (desactiva) una pregunta
-     * 
-     * @return bool true si la desactivación fue exitosa, false si hubo un error
-     */
+    // Elimina (desactiva) una pregunta @return bool true si la desactivación fue exitosa, false si hubo un error
     public function eliminar()
     {
         try {
@@ -203,17 +176,13 @@ class Pregunta
         }
     }
 
-    /**
-     * Limpia el texto para evitar código malicioso
-     */
+    // Limpia el texto para evitar código malicioso
     private function limpiarTexto($texto)
     {
         return htmlspecialchars(strip_tags($texto));
     }
 
-    /**
-     * Vincula los datos de la pregunta con la consulta preparada
-     */
+    // Vincula los datos de la pregunta con la consulta preparada
     private function vincularDatosPregunta($stmt)
     {
         $stmt->bindParam(':modulo_id', $this->modulo_id);
@@ -222,5 +191,3 @@ class Pregunta
         $stmt->bindParam(':activa', $this->activa, PDO::PARAM_BOOL);
     }
 }
-
-?>

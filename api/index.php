@@ -106,5 +106,3 @@ try {
         'linea' => $e->getLine()
     ]);
 }
-
-?>

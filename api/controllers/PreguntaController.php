@@ -26,10 +26,7 @@ class PreguntaController
         $this->pregunta = new Pregunta($this->db);
     }
 
-    /**
-     * Este método recibe todas las peticiones y las dirige al lugar correcto
-     * según lo que el usuario quiere hacer
-     */
+    // Este método recibe todas las peticiones y las dirige al lugar correcto según lo que el usuario quiere hacer
     public function procesarSolicitud($metodo, $parametro = null)
     {
         // Solo los administradores pueden modificar preguntas
@@ -80,9 +77,7 @@ class PreguntaController
         }
     }
 
-    /**
-     * Verifica si el usuario está autenticado y es administrador
-     */
+    // Verifica si el usuario está autenticado y es administrador
     private function verificarPermisos()
     {
         // Primero verificamos que haya un token válido
@@ -94,9 +89,7 @@ class PreguntaController
         return $datos && $datos['rol_id'] === 1;
     }
 
-    /**
-     * Obtiene el token de autorización de los headers
-     */
+    // Obtiene el token de autorización de los headers
     private function obtenerToken()
     {
         $headers = getallheaders();
@@ -106,18 +99,14 @@ class PreguntaController
         return str_replace('Bearer ', '', $headers['Authorization']);
     }
 
-    /**
-     * Muestra todas las preguntas activas
-     */
+    // Muestra todas las preguntas activas
     private function obtenerTodas()
     {
         $preguntas = $this->pregunta->obtenerTodas();
         $this->responder(200, ['preguntas' => $preguntas]);
     }
 
-    /**
-     * Muestra una pregunta específica por su ID
-     */
+    // Muestra una pregunta específica por su ID
     private function obtenerPorId($id)
     {
         $this->pregunta->id = $id;
@@ -130,9 +119,7 @@ class PreguntaController
         }
     }
 
-    /**
-     * Muestra todas las preguntas de un módulo específico
-     */
+    // Muestra todas las preguntas de un módulo específico
     private function obtenerPorModulo()
     {
         if (!isset($_GET['id'])) {
@@ -145,9 +132,7 @@ class PreguntaController
         $this->responder(200, ['preguntas' => $preguntas]);
     }
 
-    /**
-     * Crea una nueva pregunta en el sistema
-     */
+    // Crea una nueva pregunta en el sistema
     private function crear()
     {
         $datos = json_decode(file_get_contents("php://input"));
@@ -172,9 +157,7 @@ class PreguntaController
         }
     }
 
-    /**
-     * Actualiza una pregunta existente
-     */
+    // Actualiza una pregunta existente
     private function actualizar($id)
     {
         $datos = json_decode(file_get_contents("php://input"));
@@ -200,9 +183,7 @@ class PreguntaController
         }
     }
 
-    /**
-     * Elimina (desactiva) una pregunta del sistema
-     */
+    // Elimina (desactiva) una pregunta del sistema
     private function eliminar($id)
     {
         $this->pregunta->id = $id;
@@ -215,9 +196,7 @@ class PreguntaController
         }
     }
 
-    /**
-     * Verifica que una pregunta tenga todos los datos necesarios
-     */
+    // Verifica que una pregunta tenga todos los datos necesarios
     private function validarDatosPregunta($datos)
     {
         // Verificamos que existan todos los campos necesarios
@@ -246,9 +225,7 @@ class PreguntaController
         return true;
     }
 
-    /**
-     * Envía una respuesta al cliente en formato JSON
-     */
+    // Envía una respuesta al cliente en formato JSON
     private function responder($codigo, $mensaje)
     {
         http_response_code($codigo);
@@ -259,5 +236,3 @@ class PreguntaController
         }
     }
 }
-
-?>

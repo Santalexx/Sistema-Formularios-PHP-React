@@ -31,19 +31,13 @@ class Usuario
     public $fecha_registro;   // Fecha en que se registró
     public $activo;          // Estado del usuario en el sistema
 
-    /**
-     * Al crear una nueva instancia, guardamos la conexión a la base de datos
-     */
+    // Al crear una nueva instancia, guardamos la conexión a la base de datos
     public function __construct($db)
     {
         $this->conn = $db;
     }
 
-    /**
-     * Crea un nuevo usuario en el sistema
-     * 
-     * @return bool true si el usuario se creó correctamente, false si hubo un error
-     */
+    // Crea un nuevo usuario en el sistema @return bool true si el usuario se creó correctamente, false si hubo un error
     public function crear()
     {
         try {
@@ -74,13 +68,7 @@ class Usuario
         }
     }
 
-    /**
-     * Verifica las credenciales de un usuario para el login
-     * 
-     * @param string $correo Correo del usuario
-     * @param string $contrasena Contraseña sin encriptar
-     * @return array|false Datos del usuario si el login es exitoso, false si falla
-     */
+    // Verifica las credenciales de un usuario para el login @param string $correo Correo del usuario @param string $contrasena Contraseña sin encriptar @return array|false Datos del usuario si el login es exitoso, false si falla
     public function login($correo, $contrasena)
     {
         try {
@@ -106,11 +94,7 @@ class Usuario
         }
     }
 
-    /**
-     * Verifica si un correo ya está registrado
-     * 
-     * @return bool true si el correo existe, false si no
-     */
+    // Verifica si un correo ya está registrado @return bool true si el correo existe, false si no
     public function existeCorreo()
     {
         try {
@@ -129,11 +113,7 @@ class Usuario
         }
     }
 
-    /**
-     * Verifica si un número de documento ya está registrado
-     * 
-     * @return bool true si el documento existe, false si no
-     */
+    // Verifica si un número de documento ya está registrado @return bool true si el documento existe, false si no
     public function existeDocumento()
     {
         try {
@@ -152,12 +132,7 @@ class Usuario
         }
     }
 
-    /**
-     * Obtiene la información completa de un usuario
-     * 
-     * @param int $id ID del usuario a buscar
-     * @return array|false Datos del usuario si se encuentra, false si no
-     */
+    // Obtiene la información completa de un usuario @param int $id ID del usuario a buscar @return array|false Datos del usuario si se encuentra, false si no
     public function obtenerPorId($id)
     {
         try {
@@ -184,11 +159,7 @@ class Usuario
         }
     }
 
-    /**
-     * Actualiza la información básica del usuario
-     * 
-     * @return bool true si la actualización fue exitosa, false si hubo error
-     */
+    // Actualiza la información básica del usuario @return bool true si la actualización fue exitosa, false si hubo error
     public function actualizar()
     {
         try {
@@ -219,13 +190,7 @@ class Usuario
         }
     }
 
-    /**
-     * Cambia la contraseña de un usuario
-     * 
-     * @param string $contrasena_actual Contraseña actual sin encriptar
-     * @param string $contrasena_nueva Nueva contraseña sin encriptar
-     * @return bool true si el cambio fue exitoso, false si hubo error
-     */
+    // Cambia la contraseña de un usuario @param string $contrasena_actual Contraseña actual sin encriptar @param string $contrasena_nueva Nueva contraseña sin encriptar @return bool true si el cambio fue exitoso, false si hubo error
     public function cambiarContrasena($contrasena_actual, $contrasena_nueva)
     {
         try {
@@ -266,17 +231,13 @@ class Usuario
         }
     }
 
-    /**
-     * Limpia un texto para evitar código malicioso
-     */
+    // Limpia un texto para evitar código malicioso
     private function limpiarTexto($texto)
     {
         return htmlspecialchars(strip_tags($texto));
     }
 
-    /**
-     * Limpia todos los datos del usuario
-     */
+    // Limpia todos los datos del usuario
     private function limpiarDatos()
     {
         $this->nombre_completo = $this->limpiarTexto($this->nombre_completo);
@@ -285,9 +246,7 @@ class Usuario
         $this->telefono = $this->telefono ? $this->limpiarTexto($this->telefono) : null;
     }
 
-    /**
-     * Vincula los datos básicos del usuario con la consulta preparada
-     */
+    // Vincula los datos básicos del usuario con la consulta preparada
     private function vincularDatosUsuario($stmt)
     {
         $stmt->bindParam(':nombre_completo', $this->nombre_completo);
@@ -301,5 +260,3 @@ class Usuario
         $stmt->bindParam(':rol_id', $this->rol_id);
     }
 }
-
-?>

@@ -26,10 +26,7 @@ class RespuestaController
         $this->respuesta = new Respuesta($this->db);
     }
 
-    /**
-     * Este método recibe todas las peticiones y las dirige al lugar correcto
-     * según lo que el usuario quiere hacer
-     */
+    // Este método recibe todas las peticiones y las dirige al lugar correcto según lo que el usuario quiere hacer
     public function procesarSolicitud($metodo, $parametro = null)
     {
         // Primero verificamos que el usuario esté autenticado
@@ -91,9 +88,7 @@ class RespuestaController
         }
     }
 
-    /**
-     * Verifica que el usuario esté autenticado correctamente
-     */
+    // Verifica que el usuario esté autenticado correctamente
     private function verificarAutenticacion()
     {
         $headers = getallheaders();
@@ -108,17 +103,13 @@ class RespuestaController
         return JWT::verificarToken($token);
     }
 
-    /**
-     * Verifica si un usuario es administrador
-     */
+    // Verifica si un usuario es administrador
     private function esAdministrador($usuario)
     {
         return isset($usuario['rol_id']) && $usuario['rol_id'] === 1;
     }
 
-    /**
-     * Guarda una nueva respuesta del usuario
-     */
+    // Guarda una nueva respuesta del usuario
     private function guardarRespuesta($usuario_id)
     {
         $datos = json_decode(file_get_contents("php://input"));
@@ -148,19 +139,14 @@ class RespuestaController
         }
     }
 
-    /**
-     * Muestra todas las respuestas de un usuario
-     */
+    // Muestra todas las respuestas de un usuario
     private function obtenerRespuestasUsuario($usuario_id)
     {
         $respuestas = $this->respuesta->obtenerPorUsuario($usuario_id);
         $this->responder(200, ['respuestas' => $respuestas]);
     }
 
-    /**
-     * Muestra todas las respuestas de una pregunta específica
-     * (Solo para administradores)
-     */
+    // Muestra todas las respuestas de una pregunta específica (Solo para administradores)
     private function obtenerRespuestasPregunta()
     {
         if (!isset($_GET['pregunta_id'])) {
@@ -172,10 +158,7 @@ class RespuestaController
         $this->responder(200, ['respuestas' => $respuestas]);
     }
 
-    /**
-     * Obtiene estadísticas de las respuestas por módulo
-     * (Solo para administradores)
-     */
+    // Obtiene estadísticas de las respuestas por módulo (Solo para administradores)
     private function obtenerEstadisticas()
     {
         if (!isset($_GET['modulo_id'])) {
@@ -187,9 +170,7 @@ class RespuestaController
         $this->responder(200, ['estadisticas' => $estadisticas]);
     }
 
-    /**
-     * Modifica una respuesta existente
-     */
+    // Modifica una respuesta existente
     private function actualizarRespuesta($id, $usuario_id)
     {
         $datos = json_decode(file_get_contents("php://input"));
@@ -213,9 +194,7 @@ class RespuestaController
         }
     }
 
-    /**
-     * Elimina una respuesta del sistema
-     */
+    // Elimina una respuesta del sistema
     private function eliminarRespuesta($id, $usuario_id)
     {
         $this->respuesta->id = $id;
@@ -229,9 +208,7 @@ class RespuestaController
         }
     }
 
-    /**
-     * Envía una respuesta al cliente en formato JSON
-     */
+    // Envía una respuesta al cliente en formato JSON
     private function responder($codigo, $mensaje)
     {
         http_response_code($codigo);
@@ -242,5 +219,3 @@ class RespuestaController
         }
     }
 }
-
-?>

@@ -29,10 +29,7 @@ class AuthController
         $this->validator = new Validator();
     }
 
-    /**
-     * Este método es como un guardia que recibe todas las peticiones y las dirige 
-     * al lugar correcto según lo que el usuario quiere hacer
-     */
+    // Este método es como un guardia que recibe todas las peticiones y las dirige al lugar correcto según lo que el usuario quiere hacer
     public function procesarSolicitud($metodo, $parametro = null)
     {
         // Definimos qué acciones están permitidas y qué método debe atenderlas
@@ -66,9 +63,7 @@ class AuthController
         call_user_func($acciones_permitidas[$metodo][$parametro]);
     }
 
-    /**
-     * Maneja el proceso de inicio de sesión de los usuarios
-     */
+    // Maneja el proceso de inicio de sesión de los usuarios
     private function login()
     {
         // Obtenemos los datos que envió el usuario
@@ -112,9 +107,7 @@ class AuthController
         }
     }
 
-    /**
-     * Maneja el registro de nuevos usuarios
-     */
+    // Maneja el registro de nuevos usuarios
     private function registro()
     {
         // Obtenemos los datos que envió el usuario
@@ -175,9 +168,7 @@ class AuthController
         }
     }
 
-    /**
-     * Permite a los usuarios ver su información de perfil
-     */
+    // Permite a los usuarios ver su información de perfil
     private function obtenerPerfil()
     {
         // Verificamos que el usuario esté autenticado
@@ -198,9 +189,7 @@ class AuthController
         }
     }
 
-    /**
-     * Permite a los usuarios actualizar su información de perfil
-     */
+    // Permite a los usuarios actualizar su información de perfil
     private function actualizarPerfil()
     {
         // Verificamos que el usuario esté autenticado
@@ -245,9 +234,7 @@ class AuthController
         }
     }
 
-    /**
-     * Permite a los usuarios cambiar su contraseña
-     */
+    // Permite a los usuarios cambiar su contraseña
     private function cambiarContrasena()
     {
         // Verificamos que el usuario esté autenticado
@@ -280,9 +267,7 @@ class AuthController
         }
     }
 
-    /**
-     * Verifica que el usuario esté autenticado correctamente
-     */
+    // Verifica que el usuario esté autenticado correctamente
     private function verificarAutenticacion()
     {
         $headers = getallheaders();
@@ -305,9 +290,7 @@ class AuthController
         return $datos;
     }
 
-    /**
-     * Valida todos los campos necesarios para el registro
-     */
+    // Valida todos los campos necesarios para el registro
     private function validarDatosRegistro($datos)
     {
         // Validamos el correo
@@ -343,9 +326,7 @@ class AuthController
         return true;
     }
 
-    /**
-     * Envía una respuesta al cliente en formato JSON
-     */
+    // Envía una respuesta al cliente en formato JSON
     private function responder($codigo, $mensaje)
     {
         http_response_code($codigo);
@@ -356,5 +337,3 @@ class AuthController
         }
     }
 }
-
-?>

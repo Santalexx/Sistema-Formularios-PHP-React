@@ -68,5 +68,3 @@ class Database
         return $this->conn?->inTransaction() ?? false;
     }
 }
-
-?>

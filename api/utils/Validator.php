@@ -121,9 +121,7 @@ class Validator
     // Lista de errores encontrados
     private $errores = [];
 
-    /**
-     * Verifica que un correo electrónico sea válido
-     */
+    // Verifica que un correo electrónico sea válido
     public function validarCorreo($correo)
     {
         if (empty($correo)) {
@@ -139,9 +137,7 @@ class Validator
         return true;
     }
 
-    /**
-     * Verifica que una contraseña cumpla con los requisitos de seguridad
-     */
+    // Verifica que una contraseña cumpla con los requisitos de seguridad
     public function validarContrasena($contrasena)
     {
         if (empty($contrasena)) {
@@ -171,9 +167,7 @@ class Validator
         return true;
     }
 
-    /**
-     * Valida la fecha de nacimiento y la edad según el tipo de documento
-     */
+    // Valida la fecha de nacimiento y la edad según el tipo de documento 
     public function validarFechaNacimiento($fecha, $tipoDocumento = null)
     {
         if (empty($fecha)) {
@@ -226,9 +220,7 @@ class Validator
         return true;
     }
 
-    /**
-     * Valida el documento según su tipo
-     */
+    // Valida el documento según su tipo
     public function validarDocumento($numero, $tipo)
     {
         if (empty($numero)) {
@@ -254,9 +246,7 @@ class Validator
         return true;
     }
 
-    /**
-     * Valida el número de teléfono (debe comenzar con 3 y tener 10 dígitos)
-     */
+    // Valida el número de teléfono (debe comenzar con 3 y tener 10 dígitos)
     public function validarTelefono($telefono)
     {
         if (empty($telefono)) {
@@ -271,45 +261,33 @@ class Validator
         return true;
     }
 
-    /**
-     * Obtiene un mensaje de error específico
-     */
+    // Obtiene un mensaje de error específico
     private function obtenerMensajeError($codigo, $contexto = 'auth')
     {
         return $this->mensajesError[$contexto][$codigo]['mensaje'] ?? 'Error de validación';
     }
 
-    /**
-     * Devuelve la lista de errores encontrados
-     */
+    // Devuelve la lista de errores encontrados
     public function obtenerErrores()
     {
         return $this->errores;
     }
 
-    /**
-     * Limpia la lista de errores
-     */
+    // Limpia la lista de errores
     public function limpiarErrores()
     {
         $this->errores = [];
     }
 
-    /**
-     * Verifica si hay errores pendientes
-     */
+    // Verifica si hay errores pendientes
     public function hayErrores()
     {
         return !empty($this->errores);
     }
 
-    /**
-     * Obtiene el primer error encontrado
-     */
+    // Obtiene el primer error encontrado
     public function obtenerPrimerError()
     {
         return reset($this->errores);
     }
 }
-
-?>
