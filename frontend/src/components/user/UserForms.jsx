@@ -1,4 +1,3 @@
-// src/components/user/UserForms.jsx
 import { useState, useEffect } from 'react';
 import {
   Box,
@@ -16,6 +15,7 @@ import {
   Divider,
   Rating,
   CircularProgress,
+  Paper
 } from '@mui/material';
 import axios from 'axios';
 
@@ -106,50 +106,122 @@ const UserForms = () => {
     switch (question.tipo_respuesta) {
       case 'Escala de satisfacción':
         return (
-          <FormControl fullWidth margin="normal" required>
-            <FormLabel>{question.pregunta}</FormLabel>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Rating
-                value={Number(responses[question.id]) || 0}
-                onChange={(_, newValue) => {
-                  handleResponseChange(question.id, newValue?.toString());
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              p: 3, 
+              mb: 2,
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1
+            }}
+          >
+            <FormControl fullWidth required>
+              <FormLabel 
+                sx={{ 
+                  mb: 2,
+                  fontSize: '1rem',
+                  color: 'text.primary',
+                  '&.Mui-focused': { color: 'text.primary' }
                 }}
-                max={5}
-              />
-              <Typography variant="body2" color="text.secondary">
-                {responses[question.id] ? `${responses[question.id]}/5` : 'Sin calificar'}
-              </Typography>
-            </Box>
-          </FormControl>
+              >
+                {question.pregunta}
+              </FormLabel>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Rating
+                  value={Number(responses[question.id]) || 0}
+                  onChange={(_, newValue) => {
+                    handleResponseChange(question.id, newValue?.toString());
+                  }}
+                  max={5}
+                  sx={{ fontSize: '2rem' }}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  {responses[question.id] ? `${responses[question.id]}/5` : 'Sin calificar'}
+                </Typography>
+              </Box>
+            </FormControl>
+          </Paper>
         );
       
       case 'Opción múltiple':
         return (
-          <FormControl fullWidth margin="normal" required>
-            <FormLabel>{question.pregunta}</FormLabel>
-            <RadioGroup
-              value={responses[question.id] || ''}
-              onChange={(e) => handleResponseChange(question.id, e.target.value)}
-            >
-              <FormControlLabel value="Si" control={<Radio />} label="Sí" />
-              <FormControlLabel value="No" control={<Radio />} label="No" />
-              <FormControlLabel value="No aplica" control={<Radio />} label="No aplica" />
-            </RadioGroup>
-          </FormControl>
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              p: 3, 
+              mb: 2,
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1
+            }}
+          >
+            <FormControl fullWidth required>
+              <FormLabel 
+                sx={{ 
+                  mb: 2,
+                  fontSize: '1rem',
+                  color: 'text.primary',
+                  '&.Mui-focused': { color: 'text.primary' }
+                }}
+              >
+                {question.pregunta}
+              </FormLabel>
+              <RadioGroup
+                value={responses[question.id] || ''}
+                onChange={(e) => handleResponseChange(question.id, e.target.value)}
+              >
+                <FormControlLabel value="Si" control={<Radio />} label="Sí" />
+                <FormControlLabel value="No" control={<Radio />} label="No" />
+                <FormControlLabel value="No aplica" control={<Radio />} label="No aplica" />
+              </RadioGroup>
+            </FormControl>
+          </Paper>
         );
       
       case 'Respuesta abierta':
         return (
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label={question.pregunta}
-            value={responses[question.id] || ''}
-            onChange={(e) => handleResponseChange(question.id, e.target.value)}
-            margin="normal"
-            helperText="Opcional"
-          />
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              p: 3, 
+              mb: 2,
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1
+            }}
+          >
+            <FormControl fullWidth>
+              <FormLabel 
+                sx={{ 
+                  mb: 2,
+                  fontSize: '1rem',
+                  color: 'text.primary',
+                  '&.Mui-focused': { color: 'text.primary' }
+                }}
+              >
+                {question.pregunta}
+              </FormLabel>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                value={responses[question.id] || ''}
+                onChange={(e) => handleResponseChange(question.id, e.target.value)}
+                placeholder="Escribe tu respuesta aquí..."
+                variant="outlined"
+                helperText="Opcional"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: '#fff'
+                  }
+                }}
+              />
+            </FormControl>
+          </Paper>
         );
       
       default:
@@ -166,19 +238,27 @@ const UserForms = () => {
   }
 
   return (
-    <Box>
-      <Typography variant="h5" gutterBottom>
+    <Box sx={{ maxWidth: 'lg', mx: 'auto', p: 3 }}>
+      <Typography 
+        variant="h5" 
+        gutterBottom 
+        sx={{ 
+          mb: 4,
+          color: 'primary.main',
+          fontWeight: 500
+        }}
+      >
         Formularios Disponibles
       </Typography>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert severity="success" sx={{ mb: 3 }}>
           {success}
         </Alert>
       )}
@@ -189,12 +269,26 @@ const UserForms = () => {
         </Alert>
       ) : (
         Object.entries(forms).map(([moduleName, questions]) => (
-          <Card key={moduleName} sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" color="primary" gutterBottom>
+          <Card 
+            key={moduleName} 
+            sx={{ 
+              mb: 4,
+              borderRadius: 2,
+              boxShadow: 2
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: 'primary.main',
+                  fontWeight: 600,
+                  mb: 3
+                }}
+              >
                 {moduleName}
               </Typography>
-              <Divider sx={{ mb: 2 }} />
+              <Divider sx={{ mb: 3 }} />
               
               {questions.map((question) => (
                 <Box key={question.id}>
@@ -205,7 +299,18 @@ const UserForms = () => {
               <Button
                 variant="contained"
                 color="primary"
-                sx={{ mt: 2 }}
+                sx={{ 
+                  mt: 3,
+                  px: 4,
+                  py: 1,
+                  borderRadius: 2,
+                  boxShadow: 2,
+                  bgcolor: 'brown',
+                  '&:hover': {
+                    bgcolor: 'brown',
+                    opacity: 0.9
+                  }
+                }}
                 onClick={() => handleSubmit(moduleName)}
               >
                 Enviar Respuestas

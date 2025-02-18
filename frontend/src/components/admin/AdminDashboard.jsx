@@ -182,48 +182,100 @@ const AdminDashboard = () => {
         </Grid>
 
         {/* Gráfico de Satisfacción por Área - Versión Modificada */}
-        <Grid item xs={12} md={8}>
-        <Card sx={{ height: '100%' }}>
-            <CardContent sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
+        <Grid item xs={12} md={8} >
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
                 Satisfacción por Área
-            </Typography>
-            <Box sx={{ height: 400, bgcolor: 'background.paper', borderRadius: 1 }}>
-                <ResponsiveContainer>
+              </Typography>
+            <Box sx={{ 
+              height: 400,
+              bgcolor: 'background.paper',
+              borderRadius: 1,
+              pt: 2
+            }}>
+              <ResponsiveContainer>
                 <BarChart
-                    data={stats.satisfaccionPorArea}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  data={stats.satisfaccionPorArea}
+                  margin={{
+                    top: 20,
+                    right: 30,
+                    left: 20,
+                    bottom: 20 
+                  }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.4} />
-                    
-                    {/* Eje X personalizado */}
-                    <XAxis 
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.4}
+                    horizontal={true}
+                    vertical={false}
+                  />                    
+                  {/* Eje X personalizado */}
+                  <XAxis 
                     dataKey="area" 
-                    tick={ false }
-                    axisLine={{ stroke: '#8B4513' }}
-                    />
+                    height={10}
+                    tickLine={ false }
+                    tick={{
+                      fill: '#8B4513',
+                      fontSize: 0
+                    }}
+                    interval={0}
+                  />
                     
-                    {/* Eje Y con escala 1-5 y enteros */}
-                    <YAxis 
-                    domain={[1, 5]} 
-                    tickCount={5}
-                    tick={{ fill: '#8B4513' }}
-                    allowDecimals={false}
+                  {/* Eje Y con escala 1-5 y enteros */}
+                  <YAxis 
+                    domain={[0, 5]}
+                    ticks={[0, 1, 2, 3, 4, 5]}
+                    tickCount={6}
+                    tick={{
+                      fill: '#8B4513',
+                      fontSize: 12
+                    }}
                     axisLine={{ stroke: '#8B4513' }}
-                    />
+                    tickLine={{ stroke: '#8B4513' }}
+                  />
                     
-                    {/* Tooltip con valores enteros */}
-                    <Tooltip 
-                    formatter={(value) => [Math.round(value), 'Puntos']}
+                  {/* Tooltip con valores enteros */}
+                  <Tooltip 
+                    formatter={(value) => [`${value.toFixed(2)}`, 'Nivel de Satisfacción']}
                     contentStyle={{ 
                         backgroundColor: '#DEB887',
                         border: '1px solid #8B4513',
-                        borderRadius: '4px'
+                        borderRadius: '4px',
+                        padding: '8px'
                     }}
-                    />
+                    cursor={{ fill: 'transparent' }}
+                  />
                     
-                    <Legend />
-                    
+                    <Legend 
+                      verticalAlign='bottom'
+                      height={1}
+                      iconType="circle"
+                      iconSize={10}
+                      wrapperStyle={{
+                        paddingTop: '15px',
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}
+                      content={
+                        stats.satisfaccionPorArea.map((entry, index) => (
+                          <Box key={index} display="flex" alignItems="center">
+                            <Box
+                              sx={{
+                                width: 30,
+                                height: 16,
+                                bgcolor: COLORS[index % COLORS.length],
+                                mr: 1,
+                                borderRadius: '4px'
+                              }}
+                            />
+                            <Typography variant="body2">{entry.area}</Typography>
+                          </Box>
+                        ))
+                      }
+                    />                    
                     <defs>
                     {['#8B4513', '#A0522D', '#D2691E', '#CD853F'].map((color, index) => (
                         <linearGradient
@@ -232,10 +284,10 @@ const AdminDashboard = () => {
                         x1="0"
                         y1="0"
                         x2="0"
-                        y2="1"
+                        y2="5"
                         >
-                        <stop offset="50%" stopColor={color} stopOpacity={0.80}/>
-                        <stop offset="100%" stopColor={color} stopOpacity={0.40}/>
+                        <stop offset="5%" stopColor={color} stopOpacity={0.80}/>
+                        <stop offset="95%" stopColor={color} stopOpacity={0.40}/>
                         </linearGradient>
                     ))}
                     </defs>
@@ -244,8 +296,8 @@ const AdminDashboard = () => {
                     <Bar
                     dataKey="satisfaccion"
                     name="Nivel de Satisfacción"
-                    barSize={35}  // Controla el ancho de las barras
-                    radius={[50, 50, 50, 50]}  // Esquinas redondeadas
+                    barSize={40}  // Controla el ancho de las barras
+                    radius={[8, 8, 0, 0]}  // Esquinas redondeadas
                     >
                     {stats.satisfaccionPorArea.map((entry, index) => (
                         <Cell
@@ -254,14 +306,14 @@ const AdminDashboard = () => {
                         />
                     ))}
                     </Bar>
-                </BarChart>
+                  </BarChart>
                 </ResponsiveContainer>
-            </Box>
+              </Box>
             </CardContent>
-        </Card>
+          </Card>
         </Grid>
 
-        {/* Gráfico de Distribución de Respuestas - Versión Corregida */}
+        {/* Gráfico de Distribución de Respuestas */}
         <Grid item xs={12} md={4}>
         <Card sx={{ height: '100%' }}>
             <CardContent sx={{ p: 2 }}>
@@ -298,7 +350,6 @@ const AdminDashboard = () => {
                 </ResponsiveContainer>
             </Box>
 
-            {/* Leyendas debajo del gráfico */}
             <Grid container spacing={1} sx={{ textAlign: 'center' }}>
                 {stats.distribucionModulos.map((modulo, index) => (
                 <Grid item xs={6} key={index}>

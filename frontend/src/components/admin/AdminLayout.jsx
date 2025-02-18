@@ -26,6 +26,7 @@ import {
   BarChart,
   ExitToApp,
   Dashboard,
+  Person,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -58,6 +59,7 @@ const AdminLayout = () => {
     { text: 'Dashboard', icon: <Dashboard />, path: '/admin' },
     { text: 'Gestionar Preguntas', icon: <QuestionAnswer />, path: '/admin/preguntas' },
     { text: 'Estadísticas', icon: <BarChart />, path: '/admin/estadisticas' },
+    { text: 'Mi Perfil', icon: <Person />, path: '/admin/perfil' }
   ];
 
   const drawer = (
@@ -135,7 +137,7 @@ const AdminLayout = () => {
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
-            keepMounted: true, // Better mobile performance
+            keepMounted: true,
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
