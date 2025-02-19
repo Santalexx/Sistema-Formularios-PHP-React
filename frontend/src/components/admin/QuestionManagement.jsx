@@ -361,16 +361,10 @@ const QuestionManagement = () => {
   };
 
   return (
-    <Box sx={{ 
-      maxWidth: '1200px',
-      width: '100%',
-      mx: 'auto',
-      px: 4,
-      pb: 4
-    }}>
+    <Box sx={{ p: 2, width: '85%', mx: 'auto' }}>
       <Box sx={{ 
-        mb: 5,
-        p: 3,
+        mb: 3,
+        p: 4,
         borderRadius: 2,
         bgcolor: 'background.paper',
         boxShadow: 1,
@@ -392,9 +386,15 @@ const QuestionManagement = () => {
           onClick={() => setOpenForm(true)}
           sx={{ 
             borderRadius: 2,
-            px: 4,
-            py: 1,
-            bgcolor: 'brown'
+            px: 2,
+            py: 2,
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            fontSize: '1rem',
+            bgcolor: 'primary.main',
+            '&:hover': {
+              bgcolor: 'primary.dark'
+            }
           }}
         >
           Nueva Pregunta
@@ -405,10 +405,11 @@ const QuestionManagement = () => {
 
       <Paper sx={{ 
         borderRadius: 2, 
-        overflow: 'hidden',
-        boxShadow: 3,
+        overflow: 'hidden', 
+        boxShadow: 5,
+        position: 'relative',
         width: '100%',
-        position: 'relative'
+        borderColor: 'primary.light',
       }}>
         {loading && <LinearProgress />}
         
@@ -416,18 +417,30 @@ const QuestionManagement = () => {
           <Table>
             <TableHead sx={{ bgcolor: 'background.default' }}>
               <TableRow>
-                <TableCell sx={{ width: '25%', fontWeight: 'bold', fontSize: '1rem' }}>
-                  Módulo
-                </TableCell>
-                <TableCell sx={{ width: '45%', fontWeight: 'bold', fontSize: '1rem' }}>
-                  Pregunta
-                </TableCell>
-                <TableCell sx={{ width: '20%', fontWeight: 'bold', fontSize: '1rem' }}>
-                  Tipo
-                </TableCell>
-                <TableCell align="center" sx={{ width: '10%', fontWeight: 'bold', fontSize: '1rem' }}>
-                  Acciones
-                </TableCell>
+                <TableCell sx={{ 
+                  width: '5%', 
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  py: 3,
+                }}>Módulo</TableCell>
+                <TableCell sx={{ 
+                  width: '30%', 
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  py: 3
+                }}>Pregunta</TableCell>
+                <TableCell sx={{ 
+                  width: '20%', 
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  py: 3
+                }}>Tipo</TableCell>
+                <TableCell align="left" sx={{ 
+                  width: '10%', 
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  py: 3,
+                }}>Acciones</TableCell>
               </TableRow>
             </TableHead>
             
@@ -439,9 +452,11 @@ const QuestionManagement = () => {
                       label={MODULOS.find(m => m.id === question.modulo_id)?.nombre}
                       color={MODULOS.find(m => m.id === question.modulo_id)?.color}
                       sx={{ 
-                        borderRadius: 1,
-                        fontWeight: 500,
-                        px: 2
+                        borderRadius: 5,
+                        px: 2,
+                        py: 1,
+                        fontWeight: 600,
+                        fontSize: '1rem'
                       }}
                     />
                   </TableCell>
@@ -462,10 +477,11 @@ const QuestionManagement = () => {
                     <Box sx={{ 
                       display: 'flex', 
                       alignItems: 'center', 
-                      gap: 1,
-                      bgcolor: 'action.hover',
-                      p: 1,
-                      borderRadius: 1
+                      gap: 2,
+                      bgcolor: 'action.selected',
+                      px: 2,
+                      py: 1,
+                      borderRadius: 5
                     }}>
                       {TIPOS_RESPUESTA.find(t => t.id === question.tipo_respuesta_id)?.icon}
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -473,28 +489,35 @@ const QuestionManagement = () => {
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell align="center" sx={{ py: 2 }}>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'center',
-                      gap: 1
-                    }}>
-                      <IconButton 
-                        onClick={() => {
-                          setEditingQuestion(question);
-                          setOpenForm(true);
-                        }}
-                        sx={{ color: 'primary.main' }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton 
-                        onClick={() => handleDelete(question.id)}
-                        sx={{ color: 'error.main' }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
+                  <TableCell align="left" sx={{ py: 2 }}>
+                    <IconButton 
+                      onClick={() => {
+                        setEditingQuestion(question);
+                        setOpenForm(true);
+                      }}
+                      sx={{ 
+                        color: 'primary.main',
+                        '&:hover': { 
+                          bgcolor: 'primary.light',
+                          color: 'primary.contrastText'
+                        },
+                        mr: 1
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      onClick={() => handleDelete(question.id)}
+                      sx={{ 
+                        color: 'error.main',
+                        '&:hover': { 
+                          bgcolor: 'error.light',
+                          color: 'error.contrastText'
+                        }
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </TableCell>
                 </StyledTableRow>
               ))}

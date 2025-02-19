@@ -1,4 +1,3 @@
-// src/components/admin/AdminProfile.jsx
 import { useState, useEffect, useCallback } from 'react';
 import {
   Box,

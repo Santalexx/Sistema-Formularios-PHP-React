@@ -237,7 +237,7 @@ const AdminDashboard = () => {
                     
                   {/* Tooltip con valores enteros */}
                   <Tooltip 
-                    formatter={(value) => [`${value.toFixed(2)}`, 'Nivel de Satisfacción']}
+                    formatter={(value) => [`${value.toFixed(1)}`, 'Nivel de Satisfacción']}
                     contentStyle={{ 
                         backgroundColor: '#DEB887',
                         border: '1px solid #8B4513',
