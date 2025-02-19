@@ -361,11 +361,11 @@ const QuestionManagement = () => {
   };
 
   return (
-    <Box sx={{ p: 10, width: '100%', mx: 'auto' }}>
+    <Box sx={{ p: 2, width: '85%', mx: 'auto' }}>
       <Box sx={{ 
-        mb: 5,
-        p: 3,
-        borderRadius: 5,
+        mb: 3,
+        p: 4,
+        borderRadius: 2,
         bgcolor: 'background.paper',
         boxShadow: 5,
         display: 'flex',
@@ -387,10 +387,15 @@ const QuestionManagement = () => {
           onClick={() => setOpenForm(true)}
           sx={{ 
             borderRadius: 2,
-            px: 5,
-            py: 1.5,
+            px: 2,
+            py: 2,
             textTransform: 'uppercase',
-            fontWeight: 600
+            fontWeight: 600,
+            fontSize: '1rem',
+            bgcolor: 'primary.main',
+            '&:hover': {
+              bgcolor: 'primary.dark'
+            }
           }}
         >
           Nueva Pregunta
@@ -400,12 +405,11 @@ const QuestionManagement = () => {
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
       <Paper sx={{ 
-        borderRadius: 3, 
+        borderRadius: 2, 
         overflow: 'hidden', 
         boxShadow: 5,
         position: 'relative',
         width: '100%',
-        border: 1,
         borderColor: 'primary.light',
       }}>
         {loading && <LinearProgress />}
@@ -415,13 +419,13 @@ const QuestionManagement = () => {
             <TableHead sx={{ bgcolor: 'background.default' }}>
               <TableRow>
                 <TableCell sx={{ 
-                  width: '40%', 
+                  width: '5%', 
                   fontWeight: 700,
                   fontSize: '1.1rem',
                   py: 3,
                 }}>Módulo</TableCell>
                 <TableCell sx={{ 
-                  width: '45%', 
+                  width: '30%', 
                   fontWeight: 700,
                   fontSize: '1.1rem',
                   py: 3
@@ -432,7 +436,7 @@ const QuestionManagement = () => {
                   fontSize: '1.1rem',
                   py: 3
                 }}>Tipo</TableCell>
-                <TableCell align="right" sx={{ 
+                <TableCell align="left" sx={{ 
                   width: '10%', 
                   fontWeight: 700,
                   fontSize: '1.1rem',
@@ -450,7 +454,7 @@ const QuestionManagement = () => {
                       variant="filled"
                       color={MODULOS.find(m => m.id === question.modulo_id)?.color}
                       sx={{ 
-                        borderRadius: 1,
+                        borderRadius: 5,
                         px: 2,
                         py: 1,
                         fontWeight: 600,
@@ -475,7 +479,7 @@ const QuestionManagement = () => {
                       bgcolor: 'action.selected',
                       px: 2,
                       py: 1,
-                      borderRadius: 2
+                      borderRadius: 5
                     }}>
                       {TIPOS_RESPUESTA.find(t => t.id === question.tipo_respuesta_id)?.icon}
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -483,7 +487,7 @@ const QuestionManagement = () => {
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell align="right" sx={{ py: 2 }}>
+                  <TableCell align="left" sx={{ py: 2 }}>
                     <IconButton 
                       onClick={() => {
                         setEditingQuestion(question);

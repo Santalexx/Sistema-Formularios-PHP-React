@@ -203,23 +203,21 @@ const AdminDashboard = () => {
                     axisLine={{ stroke: '#8B4513' }}
                     />
                     
-                    {/* Eje Y con escala 1-5 y enteros */}
+                    {/* Eje Y con escala 1-5 */}
                     <YAxis 
-                    domain={[1, 5]} 
-                    tickCount={5}
+                    domain={[0, 5]} 
+                    tickCount={6}
                     tick={{ fill: '#8B4513' }}
-                    allowDecimals={false}
                     axisLine={{ stroke: '#8B4513' }}
                     />
                     
-                    {/* Tooltip con valores enteros */}
                     <Tooltip 
-                    formatter={(value) => [Math.round(value), 'Puntos']}
+                    formatter={(value) => [value.toFixed(1), 'Puntos']}
                     contentStyle={{ 
                         backgroundColor: '#DEB887',
                         border: '1px solid #8B4513',
                         borderRadius: '4px'
-                    }}
+                        }}
                     />
                     
                     <Legend />
@@ -244,8 +242,8 @@ const AdminDashboard = () => {
                     <Bar
                     dataKey="satisfaccion"
                     name="Nivel de Satisfacción"
-                    barSize={35}  // Controla el ancho de las barras
-                    radius={[50, 50, 50, 50]}  // Esquinas redondeadas
+                    barSize={50}  // Controla el ancho de las barras
+                    radius={[10, 10, 0, 0]}  // Esquinas redondeadas
                     >
                     {stats.satisfaccionPorArea.map((entry, index) => (
                         <Cell
