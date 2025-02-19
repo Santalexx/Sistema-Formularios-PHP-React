@@ -14,6 +14,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import AdminLayout from './components/admin/AdminLayout';
 import QuestionManagement from './components/admin/QuestionManagement';
 import Statistics from './components/admin/Statistics';
+import AdminProfile from './components/admin/AdminProfile';
 
 // Componentes de usuario
 import UserLayout from './components/user/UserLayout';
@@ -83,6 +84,7 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="preguntas" element={<QuestionManagement />} />
           <Route path="estadisticas" element={<Statistics />} />
+          <Route path="perfil" element={<AdminProfile />} />
         </Route>
 
         {/* Rutas de usuario normal */}
