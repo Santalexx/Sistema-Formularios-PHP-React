@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import {
   Box,
@@ -51,20 +51,13 @@ const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
   borderTopRightRadius: theme.shape.borderRadius,
 }));
 
-const MODULOS = [
-  { id: 1, nombre: 'Satisfacción Laboral', icon: <Category />, color: 'secondary' },
-  { id: 2, nombre: 'Ambiente de trabajo', icon: <Category />, color: 'success' },
-  { id: 3, nombre: 'Oportunidades de desarrollo', icon: <Category />, color: 'warning' },
-  { id: 4, nombre: 'Sugerencias', icon: <Category />, color: 'info' }
-];
-
 const TIPOS_RESPUESTA = [
   { id: 1, nombre: 'Escala de satisfacción', icon: <FormatListBulleted /> },
   { id: 2, nombre: 'Respuesta abierta', icon: <QuestionAnswer /> },
   { id: 3, nombre: 'Opción múltiple', icon: <FormatListBulleted /> }
 ];
 
-const QuestionForm = ({ open, onClose, onSubmit, initialData }) => {
+const QuestionForm = ({ open, onClose, onSubmit, initialData, modulos }) => {
   const [formData, setFormData] = useState({
     modulo_id: '',
     pregunta: '',
@@ -162,8 +155,8 @@ const QuestionForm = ({ open, onClose, onSubmit, initialData }) => {
                   startAdornment: <Category sx={{ mr: 1, color: 'action.active' }} />
                 }}
               >
-                {MODULOS.map((modulo) => (
-                  <MenuItem key={modulo.id} value={modulo.id} sx={{ py: 1.5 }}>
+                {modulos.map((modulo) => (
+                  <MenuItem key={modulo.id} value={modulo.id}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       {modulo.icon}
                       {modulo.nombre}
@@ -283,38 +276,84 @@ QuestionForm.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
-  initialData: PropTypes.object
+  initialData: PropTypes.object,
+  modulos: PropTypes.array.isRequired
 };
 
 const QuestionManagement = () => {
   const { user } = useAuth();
   const [questions, setQuestions] = useState([]);
+  const [modulos, setModulos] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { 
-    fetchQuestions();
-  }, [user]);
-
-  const fetchQuestions = async () => {
+  // Mover las funciones dentro del componente
+  const generarColorAleatorio = (id) => {
+    const colores = ['secondary', 'success', 'warning', 'info', 'primary', 'error'];
+    return colores[id % colores.length];
+  };
+  
+  const fetchQuestions = useCallback(async () => {
     try {
+      setLoading(true);
       const response = await fetch('http://localhost:8000/preguntas', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
-      if (!response.ok) throw new Error('Error al cargar preguntas');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.mensaje || 'Error al cargar preguntas');
+      }
       
       const data = await response.json();
       setQuestions(data.preguntas);
       setError('');
     } catch (error) {
+      console.error('Error detallado:', error);
       setError(error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Debe estar sin dependencias
+
+  const fetchModulos = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:8000/modulos', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      if (!response.ok) throw new Error('Error al cargar módulos');
+      
+      const data = await response.json();
+      const modulosConColor = data.modulos.map(modulo => ({
+        ...modulo,
+        icon: <Category />,
+        color: modulo.color || generarColorAleatorio(modulo.id)
+      }));
+      setModulos(modulosConColor);
+    } catch (error) {
+      console.error('Error al cargar módulos:', error);
+    }
+  }, []); // Debe estar sin dependencias
+
+  // Separar el efecto de carga inicial
+  useEffect(() => {
+    const inicializarDatos = async () => {
+      setLoading(true);
+      try {
+        await fetchModulos();
+        await fetchQuestions();
+      } catch (error) {
+        console.error('Error al cargar datos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    inicializarDatos();
+  }, [user, fetchModulos, fetchQuestions]);
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -361,10 +400,10 @@ const QuestionManagement = () => {
   };
 
   return (
-    <Box sx={{ p: 2, width: '85%', mx: 'auto' }}>
+    <Box sx={{ width: '95%', maxWidth: '1200px', mx: 'auto', px: 4, pb: 4 }}>
       <Box sx={{ 
-        mb: 3,
-        p: 4,
+        mb: 5,
+        p: 3,
         borderRadius: 2,
         bgcolor: 'background.paper',
         boxShadow: 5,
@@ -374,11 +413,7 @@ const QuestionManagement = () => {
         borderLeft: '5px solid',
         borderColor: 'primary.main'
       }}>
-        <Typography variant="h4" sx={{ 
-          fontWeight: 1000,
-          color: 'primary.dark',
-          letterSpacing: 1
-        }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.dark' }}>
           Gestión de Preguntas
         </Typography>
         <Button
@@ -387,14 +422,15 @@ const QuestionManagement = () => {
           onClick={() => setOpenForm(true)}
           sx={{ 
             borderRadius: 2,
-            px: 2,
-            py: 2,
+            px: 4,
+            py: 1,
             textTransform: 'uppercase',
             fontWeight: 600,
             fontSize: '1rem',
             bgcolor: 'primary.main',
             '&:hover': {
-              bgcolor: 'primary.dark'
+              bgcolor: 'primary.dark',
+              opacity: 0.9
             }
           }}
         >
@@ -404,18 +440,11 @@ const QuestionManagement = () => {
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      <Paper sx={{ 
-        borderRadius: 2, 
-        overflow: 'hidden', 
-        boxShadow: 5,
-        position: 'relative',
-        width: '100%',
-        borderColor: 'primary.light',
-      }}>
+      <Paper sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: 3 }}>
         {loading && <LinearProgress />}
         
         <TableContainer>
-          <Table sx={{ minWidth: 500 }}>
+          <Table>
             <TableHead sx={{ bgcolor: 'background.default' }}>
               <TableRow>
                 <TableCell sx={{ 
@@ -450,9 +479,9 @@ const QuestionManagement = () => {
                 <StyledTableRow key={question.id}>
                   <TableCell sx={{ py: 2 }}>
                     <Chip
-                      label={MODULOS.find(m => m.id === question.modulo_id)?.nombre}
+                      label={modulos.find(m => m.id === question.modulo_id)?.nombre}
                       variant="filled"
-                      color={MODULOS.find(m => m.id === question.modulo_id)?.color}
+                      color={modulos.find(m => m.id === question.modulo_id)?.color}
                       sx={{ 
                         borderRadius: 5,
                         px: 2,
@@ -522,7 +551,7 @@ const QuestionManagement = () => {
               
               {!loading && questions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
                       No se encontraron preguntas registradas
                     </Typography>
@@ -542,6 +571,7 @@ const QuestionManagement = () => {
         }}
         onSubmit={handleFormSubmit}
         initialData={editingQuestion}
+        modulos={modulos}
       />
     </Box>
   );

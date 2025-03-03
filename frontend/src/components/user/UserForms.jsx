@@ -131,9 +131,24 @@ const UserForms = () => {
               value={responses[question.id] || ''}
               onChange={(e) => handleResponseChange(question.id, e.target.value)}
             >
-              <FormControlLabel value="Si" control={<Radio />} label="Sí" />
-              <FormControlLabel value="No" control={<Radio />} label="No" />
-              <FormControlLabel value="No aplica" control={<Radio />} label="No aplica" />
+              {/* Si hay opciones personalizadas, usarlas */}
+              {question.opciones ? (
+                question.opciones.map((opcion) => (
+                  <FormControlLabel 
+                    key={opcion} 
+                    value={opcion} 
+                    control={<Radio />} 
+                    label={opcion} 
+                  />
+                ))
+              ) : (
+                // Opciones por defecto si no hay personalizadas
+                <>
+                  <FormControlLabel value="Si" control={<Radio />} label="Sí" />
+                  <FormControlLabel value="No" control={<Radio />} label="No" />
+                  <FormControlLabel value="No aplica" control={<Radio />} label="No aplica" />
+                </>
+              )}
             </RadioGroup>
           </FormControl>
         );

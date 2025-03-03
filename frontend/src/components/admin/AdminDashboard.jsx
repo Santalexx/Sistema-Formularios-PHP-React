@@ -212,7 +212,7 @@ const AdminDashboard = () => {
                     />
                     
                     <Tooltip 
-                    formatter={(value) => [value.toFixed(1), 'Puntos']}
+                    formatter={(value) => [value.toFixed(1), 'Nivel de Satisfacción']}
                     contentStyle={{ 
                         backgroundColor: '#DEB887',
                         border: '1px solid #8B4513',
@@ -241,7 +241,7 @@ const AdminDashboard = () => {
                     {/* Barras más delgadas y alargadas */}
                     <Bar
                     dataKey="satisfaccion"
-                    name="Nivel de Satisfacción"
+                    name="Puntaje"
                     barSize={50}  // Controla el ancho de las barras
                     radius={[10, 10, 0, 0]}  // Esquinas redondeadas
                     >

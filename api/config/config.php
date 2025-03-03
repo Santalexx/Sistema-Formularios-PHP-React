@@ -10,6 +10,9 @@ define('DB_PASS', '');
 define('JWT_SECRET', 'muebleideas2024_secretKey'); // Esta contraseña debe cambiarse en produccion
 define('JWT_EXPIRE', 3600); // Esto es una hora en segundos
 
+// Configuración del entorno (development, production)
+define('ENVIRONMENT', 'development'); // Cambiar a 'production' en entorno de producción
+
 // Configuración de CORS para desarrollo
 header('Access-Control-Allow-Origin: http://localhost:5173'); // Este es el puerto por defecto de Vite
 header('Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, Authorization'); // Esto especifica qué headers están permitidos cuando se hace una solicitud a tu API
@@ -23,4 +26,3 @@ ini_set('display_errors', 1); // Esto asegura que los errores se muestren en pan
 
 // Zona horaria
 date_default_timezone_set('America/Bogota');
-?>

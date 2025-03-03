@@ -300,6 +300,122 @@ class Usuario
         $stmt->bindParam(':contrasena', $this->contrasena);
         $stmt->bindParam(':rol_id', $this->rol_id);
     }
-}
 
-?>
+    public function guardarTokenRecuperacion($token, $expiracion)
+    {
+        try {
+            // Verificar si el ID del usuario está establecido
+            if (!$this->id) {
+                error_log("ID de usuario no establecido para guardar token");
+                return false;
+            }
+
+            $query = "INSERT INTO tokens_recuperacion (usuario_id, token, expiracion) 
+                 VALUES (:usuario_id, :token, :expiracion)";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':usuario_id', $this->id);
+            $stmt->bindParam(':token', $token);
+            $stmt->bindParam(':expiracion', $expiracion);
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error al guardar token: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function verificarTokenRecuperacion($token)
+    {
+        try {
+            $query = "SELECT usuario_id FROM tokens_recuperacion 
+                 WHERE token = :token AND expiracion > NOW() AND usado = 0 
+                 LIMIT 1";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':token', $token);
+            $stmt->execute();
+
+            if ($resultado = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                return $resultado['usuario_id'];
+            }
+            return false;
+        } catch (PDOException $e) {
+            error_log("Error al verificar token: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function invalidarTokenRecuperacion($token)
+    {
+        try {
+            $query = "UPDATE tokens_recuperacion SET usado = 1 WHERE token = :token";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':token', $token);
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error al invalidar token: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function obtenerNombrePorCorreo($correo)
+    {
+        try {
+            $query = "SELECT nombre_completo FROM " . $this->tabla . " 
+                 WHERE correo = :correo 
+                 LIMIT 1";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':correo', $correo);
+            $stmt->execute();
+
+            if ($resultado = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                return $resultado['nombre_completo'];
+            }
+            return '';
+        } catch (PDOException $e) {
+            error_log("Error al obtener nombre por correo: " . $e->getMessage());
+            return '';
+        }
+    }
+
+    public function actualizarContrasena()
+    {
+        try {
+            $query = "UPDATE " . $this->tabla . " 
+                 SET contrasena = :contrasena 
+                 WHERE id = :id";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':contrasena', $this->contrasena);
+            $stmt->bindParam(':id', $this->id);
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Error al actualizar contraseña: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function obtenerIdPorCorreo($correo)
+    {
+        try {
+            $query = "SELECT id FROM " . $this->tabla . " 
+                 WHERE correo = :correo AND activo = true
+                 LIMIT 1";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':correo', $correo);
+            $stmt->execute();
+
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $resultado ? $resultado['id'] : false;
+        } catch (PDOException $e) {
+            error_log("Error al obtener ID por correo: " . $e->getMessage());
+            return false;
+        }
+    }
+}

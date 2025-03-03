@@ -254,5 +254,3 @@ class Respuesta
         $stmt->bindParam(':respuesta', $this->respuesta);
     }
 }
-
-?>

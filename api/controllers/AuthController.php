@@ -39,7 +39,9 @@ class AuthController
         $acciones_permitidas = [
             'POST' => [
                 'login' => [$this, 'login'],
-                'registro' => [$this, 'registro']
+                'registro' => [$this, 'registro'],
+                'recuperar-password' => [$this, 'recuperarPassword'],
+                'resetear-password' => [$this, 'resetearPassword']
             ],
             'GET' => [
                 'perfil' => [$this, 'obtenerPerfil']
@@ -172,6 +174,158 @@ class AuthController
             $this->responder(201, '¡Cuenta creada exitosamente!');
         } else {
             $this->responder(500, 'Hubo un problema al crear la cuenta. Por favor, intenta de nuevo');
+        }
+    }
+
+    /**
+     * Maneja la solicitud de recuperación de contraseña
+     * Se debe llamar desde la ruta POST /auth/recuperar-password
+     */
+    private function recuperarPassword()
+    {
+        try {
+            // Obtener datos de la solicitud
+            $datos = json_decode(file_get_contents("php://input"));
+
+            // Verificar que se haya proporcionado un correo
+            if (!isset($datos->correo)) {
+                $this->responder(400, 'El correo electrónico es requerido');
+                return;
+            }
+
+            // Validar formato de correo
+            if (!$this->validator->validarCorreo($datos->correo)) {
+                $this->responder(400, $this->validator->obtenerErrores()['correo']);
+                return;
+            }
+
+            // Verificar si el correo existe en la base de datos
+            $this->usuario->correo = $datos->correo;
+            if (!$this->usuario->existeCorreo()) {
+                // Por seguridad, no informamos si el correo existe o no
+                $this->responder(200, 'Si el correo existe en nuestro sistema, recibirás un correo con instrucciones');
+                return;
+            }
+
+            // Obtener el ID del usuario directamente (nuevo código)
+            $usuarioInfo = $this->usuario->obtenerIdPorCorreo($datos->correo);
+            if (!$usuarioInfo) {
+                error_log("No se pudo obtener información del usuario: " . $datos->correo);
+                $this->responder(500, 'Error al procesar la solicitud');
+                return;
+            }
+
+            // Establecer el ID del usuario (nuevo código)
+            $this->usuario->id = $usuarioInfo;
+
+            // Generar token único para recuperación
+            $token = bin2hex(random_bytes(32));
+            $expiracion = date('Y-m-d H:i:s', time() + 3600); // 1 hora de validez
+
+            // Guardar token en la base de datos
+            if (!$this->usuario->guardarTokenRecuperacion($token, $expiracion)) {
+                $this->responder(500, 'Error al procesar la solicitud');
+                return;
+            }
+
+            // Preparar el correo
+            $nombreUsuario = $this->usuario->obtenerNombrePorCorreo($datos->correo);
+            $urlRecuperacion = "http://localhost:5173/resetear-password/{$token}";
+            $asunto = "Recuperación de contraseña - MuebleIdeas";
+
+            $mensaje = "
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background-color: #802629; color: white; padding: 15px; text-align: center; }
+                    .content { padding: 20px; background-color: #f9f9f9; }
+                    .button { display: inline-block; background-color: #802629; color: white; padding: 10px 20px; 
+                            text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .footer { font-size: 12px; text-align: center; margin-top: 30px; color: #777; }
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h2>Recuperación de Contraseña</h2>
+                    </div>
+                    <div class='content'>
+                        <p>Hola {$nombreUsuario},</p>
+                        <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en MuebleIdeas.</p>
+                        <p>Para continuar con el proceso, haz clic en el siguiente enlace:</p>
+                        <p style='text-align: center;'>
+                            <a href='{$urlRecuperacion}' class='button'>Restablecer mi contraseña</a>
+                        </p>
+                        <p>Si no solicitaste este cambio, puedes ignorar este correo. El enlace expirará en 1 hora por seguridad.</p>
+                        <p>Gracias,<br>El equipo de MuebleIdeas</p>
+                    </div>
+                    <div class='footer'>
+                        <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            ";
+
+            // Enviar el correo
+            $nombreUsuario = $this->usuario->obtenerNombrePorCorreo($datos->correo);
+            $urlRecuperacion = "http://localhost:5173/resetear-password/{$token}";
+            $cabeceras = "MIME-Version: 1.0" . "\r\n";
+            $cabeceras .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+            $cabeceras .= "From: MuebleIdeas <no-reply@muebleideas.com>" . "\r\n";
+
+            if (mail($datos->correo, $asunto, $mensaje, $cabeceras)) {
+                $this->responder(200, 'Se ha enviado un correo con instrucciones para restablecer tu contraseña');
+            } else {
+                error_log("Error al enviar correo a: " . $datos->correo);
+                $this->responder(500, 'Error al enviar el correo. Por favor, intenta nuevamente');
+            }
+        } catch (Exception $e) {
+            error_log("Excepción en recuperarPassword: " . $e->getMessage());
+            $this->responder(500, 'Error interno al procesar la solicitud');
+        }            
+    }
+
+    /**
+     * Maneja la solicitud de restablecimiento de contraseña
+     * Se debe llamar desde la ruta POST /auth/resetear-password
+     */
+    private function resetearPassword()
+    {
+        // Obtener datos de la solicitud
+        $datos = json_decode(file_get_contents("php://input"));
+
+        // Verificar que se hayan proporcionado todos los datos necesarios
+        if (!isset($datos->token) || !isset($datos->contrasena_nueva)) {
+            $this->responder(400, 'Todos los campos son requeridos');
+            return;
+        }
+
+        // Validar la nueva contraseña
+        if (!$this->validator->validarContrasena($datos->contrasena_nueva)) {
+            $this->responder(400, $this->validator->obtenerErrores()['contrasena']);
+            return;
+        }
+
+        // Verificar que el token sea válido y no haya expirado
+        $usuarioId = $this->usuario->verificarTokenRecuperacion($datos->token);
+        if (!$usuarioId) {
+            $this->responder(400, 'El enlace de recuperación es inválido o ha expirado');
+            return;
+        }
+
+        // Actualizar la contraseña
+        $this->usuario->id = $usuarioId;
+        $this->usuario->contrasena = password_hash($datos->contrasena_nueva, PASSWORD_DEFAULT);
+
+        if ($this->usuario->actualizarContrasena()) {
+            // Invalidar el token usado
+            $this->usuario->invalidarTokenRecuperacion($datos->token);
+            $this->responder(200, 'Contraseña actualizada exitosamente');
+        } else {
+            $this->responder(500, 'Error al actualizar la contraseña');
         }
     }
 
@@ -356,5 +510,3 @@ class AuthController
         }
     }
 }
-
-?>
