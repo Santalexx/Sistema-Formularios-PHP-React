@@ -235,9 +235,8 @@ const AdminDashboard = () => {
                     tickLine={{ stroke: '#8B4513' }}
                   />
                     
-                  {/* Tooltip con valores enteros */}
-                  <Tooltip 
-                    formatter={(value) => [`${value.toFixed(1)}`, 'Nivel de Satisfacción']}
+                    <Tooltip 
+                    formatter={(value) => [value.toFixed(1), 'Nivel de Satisfacción']}
                     contentStyle={{ 
                         backgroundColor: '#DEB887',
                         border: '1px solid #8B4513',
@@ -295,9 +294,9 @@ const AdminDashboard = () => {
                     {/* Barras más delgadas y alargadas */}
                     <Bar
                     dataKey="satisfaccion"
-                    name="Nivel de Satisfacción"
-                    barSize={40}  // Controla el ancho de las barras
-                    radius={[8, 8, 0, 0]}  // Esquinas redondeadas
+                    name="Puntaje"
+                    barSize={50}  // Controla el ancho de las barras
+                    radius={[10, 10, 0, 0]}  // Esquinas redondeadas
                     >
                     {stats.satisfaccionPorArea.map((entry, index) => (
                         <Cell

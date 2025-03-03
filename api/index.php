@@ -90,6 +90,26 @@ try {
             $controller->procesarSolicitud($metodo, $id);
             break;
 
+        case 'modulos':
+            require_once './controllers/ModuloController.php';
+            $controller = new ModuloController();
+
+            // Verificar si hay una acción específica
+            $accion = null;
+            if (isset($uri[2])) {
+                if ($uri[2] === 'activar' || $uri[2] === 'eliminar') {
+                    $accion = $uri[2];
+                    $id = $uri[1];
+                } else {
+                    $id = $uri[2];
+                }
+            } else {
+                $id = $uri[1] ?? null;
+            }
+
+            $controller->procesarSolicitud($metodo, $id, $accion);
+            break;
+
         default:
             http_response_code(404);
             echo json_encode(['error' => 'Recurso no encontrado']);

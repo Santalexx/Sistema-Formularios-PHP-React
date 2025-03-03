@@ -8,13 +8,15 @@ import { theme } from './theme/theme';
 // Componentes de autenticación
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import RecoverPassword from './components/auth/RecoverPassword';
+import ResetPassword from './components/auth/ResetPassword';
 
 // Componentes de administrador
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminLayout from './components/admin/AdminLayout';
 import QuestionManagement from './components/admin/QuestionManagement';
-import Statistics from './components/admin/Statistics';
 import AdminProfile from './components/admin/AdminProfile';
+import ModuleManagement from './components/admin/ModuleManagement';
 
 // Componentes de usuario
 import UserLayout from './components/user/UserLayout';
@@ -71,6 +73,13 @@ function App() {
         <Route path="/registro" element={
           user ? <RoleBasedRedirect /> : <Register />
         } />
+        <Route path="/recuperar-password" element={
+          user ? <RoleBasedRedirect /> : <RecoverPassword />
+        } />
+        <Route path="/resetear-password/:token" element={
+          user ? <RoleBasedRedirect /> : <ResetPassword />
+        } />
+
 
         {/* Ruta raíz - redirecciona según el rol */}
         <Route path="/" element={<RoleBasedRedirect />} />
@@ -82,8 +91,8 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<AdminDashboard />} />
+          <Route path="modulos" element={<ModuleManagement />} />
           <Route path="preguntas" element={<QuestionManagement />} />
-          <Route path="estadisticas" element={<Statistics />} />
           <Route path="perfil" element={<AdminProfile />} />
         </Route>
 

@@ -147,38 +147,32 @@ const UserForms = () => {
       
       case 'Opción múltiple':
         return (
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 3, 
-              mb: 2,
-              bgcolor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1
-            }}
-          >
-            <FormControl fullWidth required>
-              <FormLabel 
-                sx={{ 
-                  mb: 2,
-                  fontSize: '1rem',
-                  color: 'text.primary',
-                  '&.Mui-focused': { color: 'text.primary' }
-                }}
-              >
-                {question.pregunta}
-              </FormLabel>
-              <RadioGroup
-                value={responses[question.id] || ''}
-                onChange={(e) => handleResponseChange(question.id, e.target.value)}
-              >
-                <FormControlLabel value="Si" control={<Radio />} label="Sí" />
-                <FormControlLabel value="No" control={<Radio />} label="No" />
-                <FormControlLabel value="No aplica" control={<Radio />} label="No aplica" />
-              </RadioGroup>
-            </FormControl>
-          </Paper>
+          <FormControl fullWidth margin="normal" required>
+            <FormLabel>{question.pregunta}</FormLabel>
+            <RadioGroup
+              value={responses[question.id] || ''}
+              onChange={(e) => handleResponseChange(question.id, e.target.value)}
+            >
+              {/* Si hay opciones personalizadas, usarlas */}
+              {question.opciones ? (
+                question.opciones.map((opcion) => (
+                  <FormControlLabel 
+                    key={opcion} 
+                    value={opcion} 
+                    control={<Radio />} 
+                    label={opcion} 
+                  />
+                ))
+              ) : (
+                // Opciones por defecto si no hay personalizadas
+                <>
+                  <FormControlLabel value="Si" control={<Radio />} label="Sí" />
+                  <FormControlLabel value="No" control={<Radio />} label="No" />
+                  <FormControlLabel value="No aplica" control={<Radio />} label="No aplica" />
+                </>
+              )}
+            </RadioGroup>
+          </FormControl>
         );
       
       case 'Respuesta abierta':

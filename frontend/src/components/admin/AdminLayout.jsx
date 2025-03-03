@@ -23,7 +23,7 @@ import {
 import {
   Menu as MenuIcon,
   QuestionAnswer,
-  BarChart,
+  Category,
   ExitToApp,
   Dashboard,
   Person,
@@ -57,8 +57,8 @@ const AdminLayout = () => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/admin' },
+    { text: 'Gestionar Módulos', icon: <Category />, path: '/admin/modulos' },
     { text: 'Gestionar Preguntas', icon: <QuestionAnswer />, path: '/admin/preguntas' },
-    { text: 'Estadísticas', icon: <BarChart />, path: '/admin/estadisticas' },
     { text: 'Mi Perfil', icon: <Person />, path: '/admin/perfil' }
   ];
 
