@@ -74,6 +74,7 @@ const UserDashboard = () => {
   const [error, setError] = useState('');
   const [pendingForms, setPendingForms] = useState(0);
 
+  // En UserDashboard.jsx - Corrige el cálculo de formularios pendientes
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -82,15 +83,35 @@ const UserDashboard = () => {
           axios.get('http://localhost:8000/preguntas')
         ]);
 
-        // Calcular estadísticas
-        const totalResponses = responsesData.data.respuestas.length;
-        const totalForms = new Set(formsData.data.preguntas.map(q => q.modulo_id)).size;
-        const answeredForms = new Set(responsesData.data.respuestas.map(r => r.modulo_id)).size;
+        // Obtener todos los IDs de módulos con preguntas activas
+        const modulosConPreguntas = new Set();
+        if (formsData.data.preguntas && formsData.data.preguntas.length > 0) {
+          formsData.data.preguntas.forEach(pregunta => {
+            if (pregunta.activa) {
+              modulosConPreguntas.add(pregunta.modulo_id);
+            }
+          });
+        }
         
-        setPendingForms(totalForms - answeredForms);
+        // Obtener IDs de módulos ya respondidos
+        const modulosRespondidos = new Set();
+        if (responsesData.data.respuestas && responsesData.data.respuestas.length > 0) {
+          responsesData.data.respuestas.forEach(respuesta => {
+            const pregunta = formsData.data.preguntas.find(p => p.id === respuesta.pregunta_id);
+            if (pregunta) {
+              modulosRespondidos.add(pregunta.modulo_id);
+            }
+          });
+        }
+        
+        // Calcular módulos pendientes (asegurando que nunca sea negativo)
+        const modulosPendientes = [...modulosConPreguntas].filter(id => !modulosRespondidos.has(id));
+        setPendingForms(modulosPendientes.length);
+
+        // Resto del código...
         setStats({
-          totalResponses,
-          answeredForms,
+          totalResponses: responsesData.data.respuestas.length,
+          answeredForms: modulosRespondidos.size,
           lastResponse: responsesData.data.respuestas[0]?.fecha_respuesta
         });
 

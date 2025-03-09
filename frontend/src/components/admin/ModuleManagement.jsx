@@ -20,6 +20,7 @@ import {
   Alert,
   Chip,
   LinearProgress,
+  CircularProgress,  // Añadimos CircularProgress para el indicador de carga
   styled
 } from '@mui/material';
 import {
@@ -153,6 +154,8 @@ const ModuleManagement = () => {
   const [editingModule, setEditingModule] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [eliminandoId, setEliminandoId] = useState(null);
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     fetchModules();
@@ -241,23 +244,54 @@ const ModuleManagement = () => {
     }
   };
   
+  // Función simplificada para eliminar módulos directamente
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Está seguro de eliminar permanentemente este módulo? Esta acción no se puede deshacer.')) return;
+    if (!window.confirm('¿Está seguro de eliminar este módulo? Esta acción no se puede deshacer.')) {
+      return;
+    }
+    
+    setEliminandoId(id);
+    setError('');
+    
     try {
       const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setError('No se encontró token de autenticación');
+        setEliminandoId(null);
+        return;
+      }
+      
+      // Eliminación directa usando método DELETE
       await axios({
         method: 'DELETE',
-        url: `http://localhost:8000/modulos/${id}/eliminar`,
+        url: `http://localhost:8000/modulos/${id}`,
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
+      
+      // Recargar módulos después de eliminar
       await fetchModules();
-      setError('');
+      
+      // Mostrar mensaje de éxito
+      setSuccess('Módulo eliminado exitosamente');
+      setTimeout(() => setSuccess(''), 3000);
+      
     } catch (error) {
-      setError(error.response?.data?.mensaje || 'Error al eliminar el módulo');
+      console.error('Error al eliminar módulo:', error);
+      
+      if (error.response) {
+        // Mostrar mensaje específico si lo hay
+        setError(error.response.data?.mensaje || `Error ${error.response.status}: No se pudo eliminar el módulo`);
+      } else {
+        setError('Error al eliminar el módulo');
+      }
+    } finally {
+      setEliminandoId(null);
     }
-  }; 
+  };
 
   if (!user || user.rol_id !== 1) {
     return (
@@ -304,6 +338,7 @@ const ModuleManagement = () => {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
 
       <Paper sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: 3 }}>
         {loading && <LinearProgress />}
@@ -386,9 +421,12 @@ const ModuleManagement = () => {
                         color="error"
                         title="Eliminar permanentemente"
                         size="small"
-                        disabled={module.total_preguntas > 0}
+                        disabled={module.total_preguntas > 0 || eliminandoId === module.id}
                       >
-                        <DeleteIcon />
+                        {eliminandoId === module.id ? 
+                          <CircularProgress size={20} color="error" /> : 
+                          <DeleteIcon />
+                        }
                       </IconButton>
                     </Box>
                   </TableCell>

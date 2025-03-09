@@ -3,23 +3,18 @@ import { useState } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
-  AppBar,
   Box,
   CssBaseline,
+  Drawer,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Drawer,
   IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
   Typography,
   Divider,
   Button,
+  Paper,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -30,7 +25,8 @@ import {
   Dashboard,
 } from '@mui/icons-material';
 
-const drawerWidth = 240;
+// Ancho del panel de navegación
+const drawerWidth = 250;
 
 const UserLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -56,83 +52,212 @@ const UserLayout = () => {
     setShowLogoutDialog(false);
   };
 
+  // Definición de elementos del menú
   const menuItems = [
-    { text: 'Inicio', icon: <Dashboard />, path: '/dashboard' },
-    { text: 'Formularios', icon: <Assignment />, path: '/formularios' },
-    { text: 'Mis Respuestas', icon: <History />, path: '/mis-respuestas' },
-    { text: 'Mi Perfil', icon: <Person />, path: '/perfil' },
+    { 
+      text: 'Inicio', 
+      icon: <Dashboard sx={{ color: '#802629', fontSize: 30 }} />, 
+      path: '/dashboard' 
+    },
+    { 
+      text: 'Formularios', 
+      icon: <Assignment sx={{ color: '#802629', fontSize: 30 }} />, 
+      path: '/formularios' 
+    },
+    { 
+      text: 'Mis Respuestas', 
+      icon: <History sx={{ color: '#802629', fontSize: 30 }} />, 
+      path: '/mis-respuestas' 
+    },
+    { 
+      text: 'Mi Perfil', 
+      icon: <Person sx={{ color: '#802629', fontSize: 30 }} />, 
+      path: '/perfil' 
+    }
   ];
 
-  const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" color="primary">
-          MuebleIdeas
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItem
-            button
-            key={item.text}
-            onClick={() => navigate(item.path)}
-          >
-            <ListItemIcon sx={{ color: 'primary.main' }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText primary={item.text} />
-          </ListItem>
-        ))}
-      </List>
-      <Divider />
-      <List>
-        <ListItem button onClick={handleLogout}>
-          <ListItemIcon sx={{ color: 'primary.main' }}>
-            <ExitToApp />
-          </ListItemIcon>
-          <ListItemText primary="Cerrar Sesión" />
-        </ListItem>
-      </List>
-    </div>
-  );
-
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ 
+      bgcolor: 'white', 
+      minHeight: '100vh',
+      position: 'relative' 
+    }}>
       <CssBaseline />
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-          bgcolor: 'primary.main'
+
+      {/* Header superior (color rojo oscuro) separado 10px de los bordes */}
+      <Box 
+        sx={{ 
+          position: 'fixed',
+          top: '10px',
+          left: '10px',
+          right: '10px',
+          height: '75px',
+          bgcolor: '#802629',
+          zIndex: 1200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 3,
+          borderRadius: '10px'
         }}
       >
-        <Toolbar>
+        {/* Logo */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ mr: 2, display: { sm: 'none' }, color: 'white' }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Panel de Usuario
+          
+          {/* Logo de muebleideas */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'left'
+          }}>
+            <img 
+              src="/assets/images/logo-muebleideas.png" 
+              alt="Logo Muebleideas"
+              style={{ 
+                width: '180px',
+                height: 'auto' 
+              }}
+            />
+          </Box>
+        </Box>
+
+        {/* Área de usuario */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: 'white', 
+              mr: 1.5,
+              display: { xs: 'none', sm: 'block' },
+              fontWeight: 'normal',
+              fontSize: '16px'
+            }}
+          >
+            {user?.nombre_completo || 'USUARIO'}
           </Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            {user?.nombre_completo}
-          </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Salir
-          </Button>
-        </Toolbar>
-      </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+          <IconButton
+            onClick={() => navigate('/perfil')}
+            sx={{ color: 'white' }}
+          >
+            <Person sx={{ fontSize: 35 }} />
+          </IconButton>
+        </Box>
+      </Box>
+
+      {/* Panel principal (color marrón) - Separado 10px del header */}
+      <Box 
+        sx={{ 
+          position: 'fixed',
+          top: '95px',
+          left: '10px',
+          right: '10px',
+          bottom: '10px',
+          display: 'flex',
+          borderRadius: '10px',
+          overflow: 'hidden',
+          zIndex: 1100,
+          bgcolor: '#deb886',
+        }}
       >
+        {/* Contenido del panel lateral */}
+        <Box
+          sx={{
+            width: drawerWidth,
+            display: { xs: 'none', sm: 'flex' },
+            flexDirection: 'column',
+            height: '100%',
+            bgcolor: '#deb886',
+            borderRight: '1px solid rgba(0,0,0,0.1)'
+          }}
+        >
+          {/* Iconos de navegación */}
+          <Box sx={{ p: 1.5, flex: 1 }}>
+            {menuItems.map((item) => (
+              <Box
+                key={item.text}
+                onClick={() => navigate(item.path)}
+                sx={{ 
+                  my: 2,
+                  cursor: 'pointer'
+                }}
+              >
+                <Paper
+                  elevation={0}
+                  sx={{ 
+                    bgcolor: 'white',
+                    borderRadius: '20px',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      bgcolor: '#fff8dc',
+                    },
+                    mx: 0.5
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center',
+                      width: '100%',
+                      py: 1.5
+                    }}
+                  >
+                    {item.icon}
+                    <Typography 
+                      sx={{ 
+                        color: '#802629',
+                        fontWeight: 'medium',
+                        mt: 1,
+                        fontSize: '16px'
+                      }}
+                    >
+                      {item.text}
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Box>
+            ))}
+          </Box>
+          
+          {/* Separador */}
+          <Divider sx={{ mx: 2 }} />
+          
+          {/* Botón de cerrar sesión */}
+          <Box
+            onClick={handleLogout}
+            sx={{ 
+              display: 'flex',
+              alignItems: 'center',
+              color: '#802629', 
+              '&:hover': { 
+                bgcolor: 'rgba(128, 38, 41, 0.1)' 
+              },
+              p: 2,
+              cursor: 'pointer'
+            }}
+          >
+            <ExitToApp sx={{ color: '#802629', mr: 1 }} />
+            <Typography 
+              sx={{ 
+                fontWeight: 'medium', 
+                color: '#802629' 
+              }}
+            >
+              Cerrar Sesión
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Drawer móvil */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -145,61 +270,164 @@ const UserLayout = () => {
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
               width: drawerWidth,
-              bgcolor: 'background.paper'
+              height: 'calc(100% - 160px)',
+              top: '160px',
+              left: '10px',
+              borderRadius: '10px 0 0 0'
             },
           }}
         >
-          {drawer}
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            height: '100%',
+            bgcolor: '#deb886'
+          }}>
+            {/* Botones del menú */}
+            <Box sx={{ p: 1.5, flex: 1 }}>
+              {menuItems.map((item) => (
+                <Box
+                  key={item.text}
+                  onClick={() => navigate(item.path)}
+                  sx={{ 
+                    my: 2,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Paper
+                    elevation={0}
+                    sx={{ 
+                      bgcolor: 'white',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        bgcolor: '#fff8dc',
+                      },
+                      mx: 0.5
+                    }}
+                  >
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center',
+                        width: '100%',
+                        py: 1.5
+                      }}
+                    >
+                      {item.icon}
+                      <Typography 
+                        sx={{ 
+                          color: '#802629',
+                          fontWeight: 'medium',
+                          mt: 1,
+                          fontSize: '16px'
+                        }}
+                      >
+                        {item.text}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              ))}
+            </Box>
+            
+            <Divider sx={{ mx: 2 }} />
+            
+            {/* Botón de cerrar sesión */}
+            <Box
+              onClick={handleLogout}
+              sx={{ 
+                display: 'flex',
+                alignItems: 'center',
+                color: '#802629', 
+                '&:hover': { 
+                  bgcolor: 'rgba(128, 38, 41, 0.1)' 
+                },
+                p: 2,
+                cursor: 'pointer'
+              }}
+            >
+              <ExitToApp sx={{ color: '#802629', mr: 1 }} />
+              <Typography 
+                sx={{ 
+                  fontWeight: 'medium', 
+                  color: '#802629' 
+                }}
+              >
+                Cerrar Sesión
+              </Typography>
+            </Box>
+          </Box>
         </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: drawerWidth,
-              bgcolor: 'background.paper'
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
+
+        {/* Área de contenido principal */}
+        <Box sx={{ 
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {/* Barra superior con título e iconos */}
+          <Box sx={{ 
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            px: 3
+          }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: '#802629', 
+                fontWeight: 'bold',
+                fontSize: '20px'
+              }}
+            >
+              PANEL DE USUARIO
+            </Typography>
+          </Box>
+
+          {/* Contenido principal beige con bordes redondeados */}
+          <Box sx={{ 
+            flex: 1, 
+            mx: 2, 
+            mb: 2, 
+            bgcolor: '#fff8dc',
+            borderRadius: '10px',
+            overflow: 'auto' // Solo scroll aquí
+          }}>
+            <Box sx={{ p: 3 }}>
+              <Outlet />
+            </Box>
+          </Box>
+        </Box>
       </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8
-        }}
-      >
-        <Outlet />
-      </Box>
+
+      {/* Diálogo de confirmación para cerrar sesión */}
       <Dialog 
         open={showLogoutDialog} 
-        onClose={handleCloseLogoutDialog}
-        maxWidth="xs"
+        onClose={handleCloseLogoutDialog} 
+        maxWidth="xs" 
         fullWidth
       >
         <DialogTitle>Confirmar Cierre de Sesión</DialogTitle>
         <DialogContent>
-            ¿Está seguro que desea cerrar la sesión?
+          ¿Está seguro que desea cerrar la sesión?
         </DialogContent>
         <DialogActions>
-            <Button onClick={handleCloseLogoutDialog}>
-                Cancelar
-            </Button>
-            <Button 
-                onClick={confirmLogout}
-                variant="contained" 
-                color="primary"
-            >
-                Cerrar Sesión
-            </Button>
+          <Button onClick={handleCloseLogoutDialog}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={confirmLogout} 
+            variant="contained" 
+            sx={{ bgcolor: '#802629' }}
+          >
+            Cerrar Sesión
+          </Button>
         </DialogActions>
-    </Dialog>
+      </Dialog>
     </Box>
   );
 };

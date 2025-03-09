@@ -32,7 +32,12 @@ const UserForms = () => {
 
   const fetchForms = async () => {
     try {
+      setLoading(true);
+      console.log("Obteniendo formularios...");
+      
       const { data } = await axios.get('http://localhost:8000/preguntas');
+      console.log("Datos obtenidos:", data);
+      
       const groupedForms = data.preguntas.reduce((acc, pregunta) => {
         if (!acc[pregunta.modulo]) {
           acc[pregunta.modulo] = [];
@@ -40,6 +45,7 @@ const UserForms = () => {
         acc[pregunta.modulo].push(pregunta);
         return acc;
       }, {});
+      
       setForms(groupedForms);
       setLoading(false);
       setError(''); // Limpiar errores previos si la petición es exitosa
@@ -102,9 +108,14 @@ const UserForms = () => {
     }
   };
 
+// Función renderQuestion con depuración adicional
   const renderQuestion = (question) => {
+    console.log("Renderizando pregunta:", question);
+    console.log("Tipo de opciones:", typeof question.opciones);
+    console.log("Contenido de opciones:", question.opciones);
+    
     switch (question.tipo_respuesta) {
-      case 'Escala de satisfacción':
+      case 'Escala de satisfacción': {
         return (
           <Paper 
             elevation={0} 
@@ -144,8 +155,42 @@ const UserForms = () => {
             </FormControl>
           </Paper>
         );
-      
-      case 'Opción múltiple':
+      }
+
+      case 'Opción múltiple': {
+        // Verificación más robusta de opciones
+        let opcionesMostrar = [];
+        
+        if (question.opciones) {
+          if (Array.isArray(question.opciones) && question.opciones.length > 0) {
+            console.log("Usando opciones del array:", question.opciones);
+            opcionesMostrar = question.opciones;
+          } else if (typeof question.opciones === 'string') {
+            try {
+              // Intentamos parsear como JSON
+              const opcionesParsed = JSON.parse(question.opciones);
+              if (Array.isArray(opcionesParsed) && opcionesParsed.length > 0) {
+                console.log("Opciones parseadas del string JSON:", opcionesParsed);
+                opcionesMostrar = opcionesParsed;
+              } else {
+                console.log("String JSON no válido como array, usando opciones por defecto");
+                opcionesMostrar = ["Si", "No", "No aplica"];
+              }
+            } catch (e) {
+              console.log("Error al parsear opciones:", e);
+              opcionesMostrar = ["Si", "No", "No aplica"];
+            }
+          } else {
+            console.log("Formato de opciones no reconocido, usando opciones por defecto");
+            opcionesMostrar = ["Si", "No", "No aplica"];
+          }
+        } else {
+          console.log("No hay opciones definidas, usando opciones por defecto");
+          opcionesMostrar = ["Si", "No", "No aplica"];
+        }
+        
+        console.log("Opciones finales a mostrar:", opcionesMostrar);
+        
         return (
           <FormControl fullWidth margin="normal" required>
             <FormLabel>{question.pregunta}</FormLabel>
@@ -153,29 +198,20 @@ const UserForms = () => {
               value={responses[question.id] || ''}
               onChange={(e) => handleResponseChange(question.id, e.target.value)}
             >
-              {/* Si hay opciones personalizadas, usarlas */}
-              {question.opciones ? (
-                question.opciones.map((opcion) => (
-                  <FormControlLabel 
-                    key={opcion} 
-                    value={opcion} 
-                    control={<Radio />} 
-                    label={opcion} 
-                  />
-                ))
-              ) : (
-                // Opciones por defecto si no hay personalizadas
-                <>
-                  <FormControlLabel value="Si" control={<Radio />} label="Sí" />
-                  <FormControlLabel value="No" control={<Radio />} label="No" />
-                  <FormControlLabel value="No aplica" control={<Radio />} label="No aplica" />
-                </>
-              )}
+              {opcionesMostrar.map((opcion, index) => (
+                <FormControlLabel 
+                  key={`${question.id}-${index}`}
+                  value={opcion} 
+                  control={<Radio />} 
+                  label={opcion} 
+                />
+              ))}
             </RadioGroup>
           </FormControl>
         );
+      }
       
-      case 'Respuesta abierta':
+      case 'Respuesta abierta': 
         return (
           <Paper 
             elevation={0} 

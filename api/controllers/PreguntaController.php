@@ -46,6 +46,8 @@ class PreguntaController
                     $this->obtenerPorId($parametro);
                 } elseif ($parametro === 'modulo') {
                     $this->obtenerPorModulo();
+                } elseif ($parametro === 'debug') {
+                    $this->obtenerDebug();
                 } else {
                     $this->responder(404, 'No encontramos lo que buscas');
                 }
@@ -103,10 +105,55 @@ class PreguntaController
     private function obtenerTodas()
     {
         $preguntas = $this->pregunta->obtenerTodas();
+
+        // Log para depuración
+        error_log("Enviando " . count($preguntas) . " preguntas al cliente");
+
         $this->responder(200, ['preguntas' => $preguntas]);
     }
 
-    // Muestra una pregunta específica por su ID
+    /**
+     * Endpoint de depuración para diagnosticar problemas con las preguntas
+     */
+    private function obtenerDebug()
+    {
+        try {
+            // Obtener todas las preguntas
+            $query = "SELECT id, pregunta, opciones FROM preguntas WHERE activa = true";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $preguntas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $resultado = [];
+
+            foreach ($preguntas as $pregunta) {
+                $item = [
+                    'id' => $pregunta['id'],
+                    'pregunta' => $pregunta['pregunta'],
+                    'opciones_raw' => $pregunta['opciones'],
+                    'opciones_type' => gettype($pregunta['opciones']),
+                    'opciones_decoded' => null,
+                    'json_error' => null
+                ];
+
+                if (!empty($pregunta['opciones'])) {
+                    $decoded = json_decode($pregunta['opciones'], true);
+                    $item['opciones_decoded'] = $decoded;
+                    $item['json_error'] = json_last_error_msg();
+                }
+
+                $resultado[] = $item;
+            }
+
+            $this->responder(200, ['debug_info' => $resultado]);
+        } catch (Exception $e) {
+            $this->responder(500, 'Error en depuración: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Muestra una pregunta específica por su ID
+     */
     private function obtenerPorId($id)
     {
         $this->pregunta->id = $id;
@@ -143,11 +190,39 @@ class PreguntaController
             return;
         }
 
+        // Log para depuración
+        error_log("Creando nueva pregunta: " . print_r($datos, true));
+
         // Preparamos la pregunta para guardarla
         $this->pregunta->modulo_id = $datos->modulo_id;
         $this->pregunta->pregunta = $datos->pregunta;
         $this->pregunta->tipo_respuesta_id = $datos->tipo_respuesta_id;
         $this->pregunta->activa = $datos->activa ?? true;
+
+        // Procesamiento específico de opciones
+        if (isset($datos->opciones) && !empty($datos->opciones)) {
+            if (is_array($datos->opciones)) {
+                error_log("Opciones recibidas como array: " . print_r($datos->opciones, true));
+                $this->pregunta->opciones = $datos->opciones;
+            } else {
+                error_log("Opciones recibidas como: " . gettype($datos->opciones) . " - Valor: " . $datos->opciones);
+                // Intentar convertir a array si es string
+                try {
+                    $opciones = json_decode($datos->opciones, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $this->pregunta->opciones = $opciones;
+                    } else {
+                        // Si no es JSON válido, tratarlo como un string único
+                        $this->pregunta->opciones = [$datos->opciones];
+                    }
+                } catch (Exception $e) {
+                    error_log("Error al procesar opciones: " . $e->getMessage());
+                    $this->pregunta->opciones = [$datos->opciones];
+                }
+            }
+        } else {
+            $this->pregunta->opciones = null;
+        }
 
         // Intentamos guardar la pregunta
         if ($this->pregunta->crear()) {
@@ -174,6 +249,27 @@ class PreguntaController
         $this->pregunta->pregunta = $datos->pregunta;
         $this->pregunta->tipo_respuesta_id = $datos->tipo_respuesta_id;
         $this->pregunta->activa = $datos->activa ?? true;
+
+        // Procesamiento específico de opciones similar al de crear
+        if (isset($datos->opciones) && !empty($datos->opciones)) {
+            if (is_array($datos->opciones)) {
+                $this->pregunta->opciones = $datos->opciones;
+            } else {
+                // Intentar convertir a array si es string
+                try {
+                    $opciones = json_decode($datos->opciones, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $this->pregunta->opciones = $opciones;
+                    } else {
+                        $this->pregunta->opciones = [$datos->opciones];
+                    }
+                } catch (Exception $e) {
+                    $this->pregunta->opciones = [$datos->opciones];
+                }
+            }
+        } else {
+            $this->pregunta->opciones = null;
+        }
 
         // Intentamos actualizar la pregunta
         if ($this->pregunta->actualizar()) {
