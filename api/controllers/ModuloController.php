@@ -127,62 +127,82 @@ class ModuloController
 
     private function actualizar($id)
     {
-        $datos = json_decode(file_get_contents("php://input"));
+        try {
+            $datos = json_decode(file_get_contents("php://input"));
 
-        if (!$this->validarDatosModulo($datos)) {
-            return;
-        }
+            if (!$this->validarDatosModulo($datos)) {
+                return;
+            }
 
-        $this->modulo->id = $id;
-        $this->modulo->nombre = $datos->nombre;
-        $this->modulo->descripcion = $datos->descripcion ?? null;
-        $this->modulo->activo = $datos->activo ?? true;
+            $this->modulo->id = $id;
+            $this->modulo->nombre = $datos->nombre;
+            $this->modulo->descripcion = $datos->descripcion ?? null;
+            $this->modulo->activo = $datos->activo ?? true;
 
-        if ($this->modulo->existeNombreExceptoId($id)) {
-            $this->responder(400, 'Ya existe otro módulo con este nombre');
-            return;
-        }
+            // Excepción para nombres que empiezan con "INACTIVO - " - no validar unicidad
+            if (!preg_match('/^INACTIVO - /', $this->modulo->nombre)) {
+                if ($this->modulo->existeNombreExceptoId($id)) {
+                    $this->responder(400, 'Ya existe otro módulo con este nombre');
+                    return;
+                }
+            }
 
-        if ($this->modulo->actualizar()) {
-            $this->responder(200, 'Módulo actualizado exitosamente');
-        } else {
-            $this->responder(500, 'Error al actualizar el módulo');
+            if ($this->modulo->actualizar()) {
+                $this->responder(200, 'Módulo actualizado exitosamente');
+            } else {
+                $this->responder(500, 'Error al actualizar el módulo');
+            }
+        } catch (Exception $e) {
+            error_log("Error en actualizar módulo: " . $e->getMessage());
+            $this->responder(500, 'Error interno: ' . $e->getMessage());
         }
     }
 
     private function cambiarEstado($id)
     {
-        $datos = json_decode(file_get_contents("php://input"));
+        try {
+            $datos = json_decode(file_get_contents("php://input"));
 
-        if (!isset($datos->activo)) {
-            $this->responder(400, 'Estado requerido');
-            return;
-        }
+            if (!isset($datos->activo)) {
+                $this->responder(400, 'Estado requerido');
+                return;
+            }
 
-        $this->modulo->id = $id;
-        $this->modulo->activo = $datos->activo;
+            $this->modulo->id = $id;
+            $this->modulo->activo = $datos->activo;
 
-        if ($this->modulo->cambiarEstado()) {
-            $mensaje = $datos->activo ? 'Módulo activado exitosamente' : 'Módulo desactivado exitosamente';
-            $this->responder(200, $mensaje);
-        } else {
-            $this->responder(500, 'Error al cambiar estado del módulo');
+            if ($this->modulo->cambiarEstado()) {
+                $mensaje = $datos->activo ? 'Módulo activado exitosamente' : 'Módulo desactivado exitosamente';
+                $this->responder(200, $mensaje);
+            } else {
+                $this->responder(500, 'Error al cambiar estado del módulo');
+            }
+        } catch (Exception $e) {
+            error_log("Error en cambiarEstado: " . $e->getMessage());
+            $this->responder(500, 'Error interno: ' . $e->getMessage());
         }
     }
 
     private function desactivar($id)
     {
-        $this->modulo->id = $id;
+        try {
+            $this->modulo->id = $id;
 
-        if ($this->modulo->tienePreguntasActivas()) {
-            $this->responder(400, 'No se puede desactivar el módulo porque tiene preguntas activas');
-            return;
-        }
+            // Verificar si el módulo tiene preguntas activas
+            if ($this->modulo->tienePreguntasActivas()) {
+                $this->responder(400, 'No se puede eliminar el módulo porque tiene preguntas activas');
+                return;
+            }
 
-        if ($this->modulo->desactivar()) {
-            $this->responder(200, 'Módulo desactivado exitosamente');
-        } else {
-            $this->responder(500, 'Error al desactivar el módulo');
+            // Simplemente eliminar el módulo directamente
+            if ($this->modulo->eliminar()) {
+                $this->responder(200, 'Módulo eliminado exitosamente');
+            } else {
+                $this->responder(500, 'Error al eliminar el módulo');
+            }
+        } catch (Exception $e) {
+            error_log("Error al eliminar módulo: " . $e->getMessage());
+            $this->responder(500, 'Error interno del servidor: ' . $e->getMessage());
         }
     }
 
@@ -190,15 +210,30 @@ class ModuloController
     {
         $this->modulo->id = $id;
 
-        if ($this->modulo->tienePreguntasActivas()) {
-            $this->responder(400, 'No se puede eliminar el módulo porque tiene preguntas activas');
-            return;
-        }
+        try {
+            // Verificamos primero si el módulo existe
+            $modulo = $this->modulo->obtenerPorId();
+            if (!$modulo) {
+                $this->responder(404, 'Módulo no encontrado');
+                return;
+            }
 
-        if ($this->modulo->eliminarPermanente()) {
-            $this->responder(200, 'Módulo eliminado permanentemente');
-        } else {
-            $this->responder(500, 'Error al eliminar el módulo');
+            // Después verificamos si tiene preguntas activas
+            if ($this->modulo->tienePreguntasActivas()) {
+                $this->responder(400, 'No se puede eliminar el módulo porque tiene preguntas activas');
+                return;
+            }
+
+            // Si pasa ambas verificaciones, procedemos a eliminarlo
+            if ($this->modulo->eliminarPermanente()) {
+                $this->responder(200, 'Módulo eliminado permanentemente');
+            } else {
+                $this->responder(500, 'Error al eliminar el módulo');
+            }
+        } catch (Exception $e) {
+            // Registramos el error para poder analizarlo
+            error_log("Error en eliminarPermanente: " . $e->getMessage());
+            $this->responder(500, 'Error interno del servidor: ' . $e->getMessage());
         }
     }
 

@@ -14,7 +14,7 @@ export const theme = createTheme({
       dark: '#D2691E', // Marrón chocolate
     },
     background: {
-      default: '#FFF8DC', // Crema muy claro
+      default: '#FFFFFF',
       paper: '#FFFFFF',
     },
     text: {

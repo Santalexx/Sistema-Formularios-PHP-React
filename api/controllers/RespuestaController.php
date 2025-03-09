@@ -241,4 +241,22 @@ class RespuestaController
             echo json_encode($mensaje);
         }
     }
+
+    /**
+     * Versión simple para diagnosticar problemas
+     */
+    public function obtenerTodas()
+    {
+        try {
+            // Use the method from the model
+            $respuestas = $this->respuesta->obtenerTodasConUsuarios();
+            $this->responder(200, ['respuestas' => $respuestas]);
+        } catch (Exception $e) {
+            // Registrar el error detallado para diagnóstico
+            error_log("Error detallado en obtenerTodas: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+
+            $this->responder(500, 'Error al obtener respuestas: ' . $e->getMessage());
+        }
+    }
 }

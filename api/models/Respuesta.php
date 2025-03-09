@@ -253,4 +253,36 @@ class Respuesta
         $stmt->bindParam(':pregunta_id', $this->pregunta_id);
         $stmt->bindParam(':respuesta', $this->respuesta);
     }
+
+    /**
+     * Obtiene todas las respuestas con información de usuarios
+     */
+    public function obtenerTodasConUsuarios()
+    {
+        try {
+            // Consulta más simple para identificar errores
+            $query = "SELECT 
+                    r.*,
+                    p.pregunta,
+                    p.modulo_id,
+                    tr.nombre as tipo_respuesta,
+                    u.nombre_completo as nombre_usuario,
+                    u.area_trabajo_id,
+                    a.nombre as area_trabajo
+                 FROM " . $this->tabla . " r
+                 JOIN preguntas p ON r.pregunta_id = p.id
+                 JOIN tipos_respuesta tr ON p.tipo_respuesta_id = tr.id
+                 JOIN usuarios u ON r.usuario_id = u.id
+                 LEFT JOIN areas_trabajo a ON u.area_trabajo_id = a.id
+                 ORDER BY r.fecha_respuesta DESC";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            // Registrar el error para diagnóstico
+            error_log("Error en obtenerTodasConUsuarios: " . $e->getMessage());
+            return [];
+        }
+    }
 }

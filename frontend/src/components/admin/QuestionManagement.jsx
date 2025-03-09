@@ -31,8 +31,10 @@ import {
   Close as CloseIcon,
   Category,
   QuestionAnswer,
-  FormatListBulleted
+  FormatListBulleted,
+  StarHalf as StarIcon
 } from '@mui/icons-material';
+import axios from 'axios';
 import { useAuth } from '../../hooks/useAuth';
 
 // Componentes estilizados
@@ -52,7 +54,7 @@ const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
 }));
 
 const TIPOS_RESPUESTA = [
-  { id: 1, nombre: 'Escala de satisfacción', icon: <FormatListBulleted /> },
+  { id: 1, nombre: 'Escala de satisfacción', icon: <StarIcon /> },
   { id: 2, nombre: 'Respuesta abierta', icon: <QuestionAnswer /> },
   { id: 3, nombre: 'Opción múltiple', icon: <FormatListBulleted /> }
 ];
@@ -70,11 +72,27 @@ const QuestionForm = ({ open, onClose, onSubmit, initialData, modulos }) => {
 
   useEffect(() => {
     if (initialData) {
+      // Asegurarse de que opciones sea siempre un array
+      let opciones = [];
+      if (initialData.opciones) {
+        if (Array.isArray(initialData.opciones)) {
+          opciones = [...initialData.opciones];
+        } else if (typeof initialData.opciones === 'string') {
+          try {
+            // Intentar parsear como JSON si es un string
+            const parsedOpciones = JSON.parse(initialData.opciones);
+            opciones = Array.isArray(parsedOpciones) ? parsedOpciones : [initialData.opciones];
+          } catch {
+            opciones = [initialData.opciones];
+          }
+        }
+      }
+      
       setFormData({
         modulo_id: initialData.modulo_id,
         pregunta: initialData.pregunta,
         tipo_respuesta_id: initialData.tipo_respuesta_id,
-        opciones: initialData.opciones || [],
+        opciones: opciones,
         activa: initialData.activa
       });
     } else {
@@ -120,11 +138,25 @@ const QuestionForm = ({ open, onClose, onSubmit, initialData, modulos }) => {
     }
     
     if (formData.tipo_respuesta_id === 3 && formData.opciones.length < 2) {
-      setError('Debe agregar al menos 2 opciones');
+      setError('Debe agregar al menos 2 opciones para preguntas de opción múltiple');
       return;
     }
     
-    onSubmit(formData);
+    // Crear una copia del formData para enviar
+    const dataToSubmit = { ...formData };
+    
+    // Asegurarse de que opciones sea un array válido si es tipo opción múltiple
+    if (formData.tipo_respuesta_id === 3) {
+      if (!Array.isArray(dataToSubmit.opciones) || dataToSubmit.opciones.length === 0) {
+        dataToSubmit.opciones = ["Si", "No", "No aplica"];
+      }
+    } else {
+      // Para otros tipos, enviamos null o un array vacío
+      dataToSubmit.opciones = [];
+    }
+    
+    console.log("Enviando datos de pregunta:", dataToSubmit);
+    onSubmit(dataToSubmit);
   };
 
   return (
@@ -207,7 +239,8 @@ const QuestionForm = ({ open, onClose, onSubmit, initialData, modulos }) => {
               />
             </Grid>
 
-            {formData.tipo_respuesta_id === 3 && (
+            {/* Mostrar opciones solo si el tipo de respuesta es Opción múltiple */}
+            {Number(formData.tipo_respuesta_id) === 3 && (
               <Grid item xs={12}>
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="subtitle1" gutterBottom>
@@ -298,17 +331,40 @@ const QuestionManagement = () => {
   const fetchQuestions = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/preguntas', {
+      const response = await axios.get('http://localhost:8000/preguntas', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.mensaje || 'Error al cargar preguntas');
+      if (!response.data?.preguntas) {
+        throw new Error('Formato de respuesta inválido');
       }
       
-      const data = await response.json();
-      setQuestions(data.preguntas);
+      // Procesamiento adicional para asegurar que las opciones sean arrays
+      const processedQuestions = response.data.preguntas.map(question => {
+        // Asegurarse de que las opciones sean arrays
+        if (question.opciones !== null && question.opciones !== undefined) {
+          if (!Array.isArray(question.opciones)) {
+            try {
+              // Intentar parsear si es un string
+              const opciones = typeof question.opciones === 'string' 
+                ? JSON.parse(question.opciones) 
+                : question.opciones;
+                
+              question.opciones = Array.isArray(opciones) ? opciones : [opciones];
+            } catch (e) {
+              console.error('Error parseando opciones:', e);
+              question.opciones = [question.opciones.toString()];
+            }
+          }
+        } else {
+          question.opciones = [];
+        }
+        
+        return question;
+      });
+      
+      console.log("Preguntas procesadas:", processedQuestions);
+      setQuestions(processedQuestions);
       setError('');
     } catch (error) {
       console.error('Error detallado:', error);
@@ -316,18 +372,19 @@ const QuestionManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // Debe estar sin dependencias
+  }, []);
 
   const fetchModulos = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:8000/modulos', {
+      const response = await axios.get('http://localhost:8000/modulos', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
-      if (!response.ok) throw new Error('Error al cargar módulos');
+      if (!response.data?.modulos) {
+        throw new Error('Error al cargar módulos: formato inválido');
+      }
       
-      const data = await response.json();
-      const modulosConColor = data.modulos.map(modulo => ({
+      const modulosConColor = response.data.modulos.map(modulo => ({
         ...modulo,
         icon: <Category />,
         color: modulo.color || generarColorAleatorio(modulo.id)
@@ -335,8 +392,9 @@ const QuestionManagement = () => {
       setModulos(modulosConColor);
     } catch (error) {
       console.error('Error al cargar módulos:', error);
+      setError(error.message || 'Error al cargar módulos');
     }
-  }, []); // Debe estar sin dependencias
+  }, []);
 
   // Separar el efecto de carga inicial
   useEffect(() => {
@@ -347,13 +405,14 @@ const QuestionManagement = () => {
         await fetchQuestions();
       } catch (error) {
         console.error('Error al cargar datos:', error);
+        setError('Error al cargar los datos: ' + error.message);
       } finally {
         setLoading(false);
       }
     };
 
     inicializarDatos();
-  }, [user, fetchModulos, fetchQuestions]);
+  }, [fetchModulos, fetchQuestions]);
 
   const handleFormSubmit = async (formData) => {
     try {
@@ -363,22 +422,41 @@ const QuestionManagement = () => {
       
       const method = editingQuestion ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
+      // Asegurar que los datos a enviar son correctos
+      const dataToSend = {
+        ...formData,
+        // Asegurarnos de que opciones es un array correcto
+        opciones: formData.tipo_respuesta_id === 3 && Array.isArray(formData.opciones) 
+          ? formData.opciones 
+          : []
+      };
+      
+      console.log("Enviando datos al servidor:", dataToSend);
+
+      const response = await axios({
         method,
+        url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData),
+        data: dataToSend,
       });
       
-      if (!response.ok) throw new Error('Error al guardar');
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error('Error al guardar la pregunta');
+      }
       
-      await fetchQuestions();
       setOpenForm(false);
       setEditingQuestion(null);
+      setError('');
+      
+      // Recargar las preguntas para asegurar que vemos los cambios
+      await fetchQuestions();
+      
     } catch (error) {
-      setError(error.message);
+      console.error('Error al guardar pregunta:', error);
+      setError(error.response?.data?.mensaje || error.message || 'Error al guardar la pregunta');
     }
   };
 
@@ -386,18 +464,31 @@ const QuestionManagement = () => {
     if (!window.confirm('¿Confirmar eliminación?')) return;
     
     try {
-      const response = await fetch(`http://localhost:8000/preguntas/${id}`, {
-        method: 'DELETE',
+      const response = await axios.delete(`http://localhost:8000/preguntas/${id}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       
-      if (!response.ok) throw new Error('Error al eliminar');
+      if (response.status !== 200) {
+        throw new Error('Error al eliminar la pregunta');
+      }
       
+      // Recargar las preguntas después de eliminar
       await fetchQuestions();
+      setError('');
+      
     } catch (error) {
-      setError(error.message);
+      console.error('Error al eliminar pregunta:', error);
+      setError(error.response?.data?.mensaje || error.message || 'Error al eliminar la pregunta');
     }
   };
+
+  if (!user || user.rol_id !== 1) {
+    return (
+      <Alert severity="error" sx={{ mt: 2 }}>
+        No tiene permisos para acceder a esta sección
+      </Alert>
+    );
+  }
 
   return (
     <Box sx={{ width: '95%', maxWidth: '1200px', mx: 'auto', px: 4, pb: 4 }}>
@@ -424,12 +515,9 @@ const QuestionManagement = () => {
             borderRadius: 2,
             px: 4,
             py: 1,
-            textTransform: 'uppercase',
-            fontWeight: 600,
-            fontSize: '1rem',
-            bgcolor: 'primary.main',
+            bgcolor: 'brown',
             '&:hover': {
-              bgcolor: 'primary.dark',
+              bgcolor: 'brown',
               opacity: 0.9
             }
           }}
@@ -448,28 +536,24 @@ const QuestionManagement = () => {
             <TableHead sx={{ bgcolor: 'background.default' }}>
               <TableRow>
                 <TableCell sx={{ 
-                  width: '5%', 
-                  fontWeight: 700,
-                  fontSize: '1.1rem',
-                  py: 3,
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
                 }}>Módulo</TableCell>
                 <TableCell sx={{ 
-                  width: '30%', 
-                  fontWeight: 700,
-                  fontSize: '1.1rem',
-                  py: 3
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
                 }}>Pregunta</TableCell>
                 <TableCell sx={{ 
-                  width: '20%', 
-                  fontWeight: 700,
-                  fontSize: '1.1rem',
-                  py: 3
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
                 }}>Tipo</TableCell>
-                <TableCell align="left" sx={{ 
-                  width: '10%', 
-                  fontWeight: 700,
-                  fontSize: '1.1rem',
-                  py: 3,
+                <TableCell sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                }}>Opciones</TableCell>
+                <TableCell align="center" sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
                 }}>Acciones</TableCell>
               </TableRow>
             </TableHead>
@@ -477,30 +561,22 @@ const QuestionManagement = () => {
             <TableBody>
               {questions.map((question) => (
                 <StyledTableRow key={question.id}>
-                  <TableCell sx={{ py: 2 }}>
+                  <TableCell>
                     <Chip
-                      label={modulos.find(m => m.id === question.modulo_id)?.nombre}
-                      variant="filled"
-                      color={modulos.find(m => m.id === question.modulo_id)?.color}
-                      sx={{ 
-                        borderRadius: 5,
-                        px: 2,
-                        py: 1,
-                        fontWeight: 600,
-                        fontSize: '1rem'
-                      }}
+                      label={modulos.find(m => m.id === Number(question.modulo_id))?.nombre || question.modulo}
+                      color={modulos.find(m => m.id === Number(question.modulo_id))?.color || 'default'}
                     />
                   </TableCell>
-                  <TableCell sx={{ py: 2 }}>
+                  <TableCell sx={{ py: 1, pb: 1, px: 2 }}>
                     <Typography variant="body1" sx={{ 
                       fontWeight: 500,
-                      lineHeight: 1.4,
+                      lineHeight: 1.5,
                       fontSize: '1rem'
                     }}>
                       {question.pregunta}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ py: 2 }}>
+                  <TableCell sx={{ py: 1 }}>
                     <Box sx={{ 
                       display: 'flex', 
                       alignItems: 'center', 
@@ -510,41 +586,64 @@ const QuestionManagement = () => {
                       py: 1,
                       borderRadius: 5
                     }}>
-                      {TIPOS_RESPUESTA.find(t => t.id === question.tipo_respuesta_id)?.icon}
+                      {TIPOS_RESPUESTA.find(t => t.id === Number(question.tipo_respuesta_id))?.icon || <QuestionAnswer />}
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {TIPOS_RESPUESTA.find(t => t.id === question.tipo_respuesta_id)?.nombre}
+                        {question.tipo_respuesta}
                       </Typography>
                     </Box>
                   </TableCell>
-                  <TableCell align="left" sx={{ py: 2 }}>
-                    <IconButton 
-                      onClick={() => {
-                        setEditingQuestion(question);
-                        setOpenForm(true);
-                      }}
-                      sx={{ 
-                        color: 'primary.main',
-                        '&:hover': { 
-                          bgcolor: 'primary.light',
-                          color: 'primary.contrastText'
-                        },
-                        mr: 1
-                      }}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => handleDelete(question.id)}
-                      sx={{ 
-                        color: 'error.main',
-                        '&:hover': { 
-                          bgcolor: 'error.light',
-                          color: 'error.contrastText'
-                        }
-                      }}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                  <TableCell>
+                    {Number(question.tipo_respuesta_id) === 3 && Array.isArray(question.opciones) && question.opciones.length > 0 ? (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {question.opciones.map((opcion, idx) => (
+                          <Chip 
+                            key={idx} 
+                            label={opcion} 
+                            size="small" 
+                            color="info"
+                            sx={{ margin: '2px' }} 
+                          />
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        {Number(question.tipo_respuesta_id) === 1 ? 'Escala 1-5' : '-'}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                      <IconButton 
+                        onClick={() => {
+                          setEditingQuestion(question);
+                          setOpenForm(true);
+                        }}
+                        sx={{ 
+                          color: 'primary.main',
+                          '&:hover': { 
+                            bgcolor: 'primary.light',
+                            color: 'primary.contrastText',
+                            size: 'small'
+                          },
+                          mr: 1
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        onClick={() => handleDelete(question.id)}
+                        sx={{
+                          color: 'error.main',
+                          '&:hover': { 
+                            bgcolor: 'error.light',
+                            color: 'error.contrastText',
+                            size: 'small',
+                          }
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
                   </TableCell>
                 </StyledTableRow>
               ))}

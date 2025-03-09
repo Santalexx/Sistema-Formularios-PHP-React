@@ -17,6 +17,7 @@ import AdminLayout from './components/admin/AdminLayout';
 import QuestionManagement from './components/admin/QuestionManagement';
 import AdminProfile from './components/admin/AdminProfile';
 import ModuleManagement from './components/admin/ModuleManagement';
+import AnswerManagement from './components/admin/AnswerManagement';
 
 // Componentes de usuario
 import UserLayout from './components/user/UserLayout';
@@ -93,6 +94,7 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="modulos" element={<ModuleManagement />} />
           <Route path="preguntas" element={<QuestionManagement />} />
+          <Route path="respuestas" element={<AnswerManagement />} />
           <Route path="perfil" element={<AdminProfile />} />
         </Route>
 

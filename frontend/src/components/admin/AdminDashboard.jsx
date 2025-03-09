@@ -49,41 +49,91 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const modulosIds = [1, 2, 3, 4];
-        const modulosPromises = modulosIds.map(id =>
-          axios.get(`http://localhost:8000/respuestas/estadisticas?modulo_id=${id}`)
+        // Obtener los módulos reales de la base de datos
+        const modulosResponse = await axios.get('http://localhost:8000/modulos');
+        const modulos = modulosResponse.data.modulos.filter(m => m.activo);
+        
+        // Obtener datos de todos los usuarios para contar cuántos hay
+        const authResponse = await axios.get('http://localhost:8000/auth/perfil');
+        
+        // Obtener todas las preguntas
+        const preguntasResponse = await axios.get('http://localhost:8000/preguntas');
+        
+        // Obtener estadísticas para cada módulo usando sus IDs reales
+        const modulosPromises = modulos.map(modulo =>
+          axios.get(`http://localhost:8000/respuestas/estadisticas?modulo_id=${modulo.id}`)
         );
-
         const responses = await Promise.all(modulosPromises);
+        
+        // Procesar datos de satisfacción
+        let satisfaccionData = [];
 
-        const satisfaccionData = responses[0].data.estadisticas
-          .filter(item => item.tipo_respuesta === 'Escala de satisfacción')
-          .map(item => ({
-            area: item.pregunta,
-            satisfaccion: parseFloat(item.promedio) || 0
-          }));
+        // Para cada módulo, buscar las preguntas de satisfacción y sus respuestas
+        for (let i = 0; i < modulos.length; i++) {
+          const modulo = modulos[i];
+          const response = responses[i];
+          
+          if (!response?.data?.estadisticas) continue;
+          
+          // Filtrar las estadísticas con promedios válidos
+          const moduloStats = response.data.estadisticas
+            .filter(item => 
+              item.tipo_respuesta === 'Escala de satisfacción' && 
+              item.promedio && 
+              parseFloat(item.promedio) > 0
+            )
+            .map(item => ({
+              area: item.pregunta,
+              satisfaccion: parseFloat(item.promedio) || 0,
+              modulo: modulo.nombre
+            }));
+          
+          satisfaccionData = [...satisfaccionData, ...moduloStats];
+        }
 
-        const distribucionData = responses.map((response, index) => ({
-          nombre: ['Satisfacción', 'Ambiente', 'Desarrollo', 'Sugerencias'][index],
-          total: response.data.estadisticas.reduce((sum, item) => 
-            sum + (item.total_respuestas || 0), 0)
-        }));
-
+        // Si no hay datos, añadir un placeholder para evitar gráfico vacío
+        if (satisfaccionData.length === 0) {
+          satisfaccionData = [{
+            area: 'Sin datos',
+            satisfaccion: 0,
+            modulo: 'Sin datos'
+          }];
+        }
+        
+        // Crear datos para el gráfico de distribución usando nombres reales de módulos
+        const distribucionData = modulos.map((modulo, index) => {
+          const moduleResponses = responses[index]?.data?.estadisticas || [];
+          const total = moduleResponses.reduce((sum, item) => 
+            sum + (parseInt(item.total_respuestas) || 0), 0);
+          
+          return {
+            nombre: modulo.nombre,
+            total: total
+          };
+        });
+        
+        // Calcular totales
         const totalRespuestas = distribucionData.reduce((sum, item) => sum + item.total, 0);
-
+        const totalPreguntas = preguntasResponse.data.preguntas.length;
+        
+        // Obtener cantidad real de usuarios desde la API
+        // Esta es una estimación, ya que no hay endpoint específico
+        const totalUsuarios = authResponse?.data?.usuarios?.length || 
+                             modulos.length * 2; // Estimación respaldo
+        
         setStats({
-          totalUsuarios: 15,
-          totalPreguntas: 25,
-          totalRespuestas,
+          totalUsuarios: totalUsuarios,
+          totalPreguntas: totalPreguntas,
+          totalRespuestas: totalRespuestas,
           ultimaActividad: new Date().toLocaleDateString(),
           satisfaccionPorArea: satisfaccionData,
           distribucionModulos: distribucionData
         });
-
+        
         setLoading(false);
       } catch (error) {
         console.error('Error al cargar datos del dashboard:', error);
-        setError('Error al cargar la información del dashboard');
+        setError('Error al cargar la información del dashboard: ' + error.message);
         setLoading(false);
       }
     };
@@ -123,7 +173,7 @@ const AdminDashboard = () => {
         Dashboard Administrativo
       </Typography>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {/* Panel de Estadísticas Rápidas */}
         <Grid item xs={12}>
           <Card>
@@ -133,7 +183,7 @@ const AdminDashboard = () => {
                   {
                     icon: <Assessment color="primary" sx={{ fontSize: 40 }}/>,
                     title: "Formularios Activos",
-                    value: "4",
+                    value: stats.distribucionModulos.length.toString(),
                     subtitle: "Módulos en curso"
                   },
                   {
@@ -181,7 +231,7 @@ const AdminDashboard = () => {
           </Card>
         </Grid>
 
-        {/* Gráfico de Satisfacción por Área - Versión Modificada */}
+        {/* Gráfico de Satisfacción por Área */}
         <Grid item xs={12} md={8}>
         <Card sx={{ height: '100%' }}>
             <CardContent sx={{ p: 2 }}>
@@ -252,6 +302,11 @@ const AdminDashboard = () => {
                         />
                     ))}
                     </Bar>
+                    {stats.satisfaccionPorArea.length === 0 && (
+                      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                        No hay datos de satisfacción disponibles
+                      </text>
+                    )}
                 </BarChart>
                 </ResponsiveContainer>
             </Box>
@@ -311,7 +366,7 @@ const AdminDashboard = () => {
                         }}
                     />
                     <Typography variant="body2">
-                        {modulo.nombre === 'Satisfaccio' ? 'Satisfacción' : modulo.nombre}
+                        {modulo.nombre === 'Satisfaccion' ? 'Satisfacción' : modulo.nombre}
                     </Typography>
                     </Box>
                     <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
